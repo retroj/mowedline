@@ -1,0 +1,12 @@
+    ;;;XXX: what is the difference between using xstorename and
+    ;;;     xsetwmname?  xstorename is just a shortcut?
+    (xstorename dpy window "foo")
+
+
+    (let ((title (make-xtextproperty))
+          (str (xtextproperty-make "foo")))
+      ;(set-xtextproperty-value! title str)
+      (xstringlisttotextproperty str 1 title)
+      (xsetwmname dpy window title)
+      ;(free-xtextproperty title) ;; should do this at end of program?
+      )
