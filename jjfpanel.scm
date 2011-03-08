@@ -120,7 +120,6 @@
 
 
 (let* ((screen (xdefaultscreen *display*))
-       (root (xrootwindow *display* screen))
        (swid (xdisplaywidth *display* screen))
        (shei (xdisplayheight *display* screen))
        (attr (make-xsetwindowattributes))
@@ -135,7 +134,8 @@
   (set-visual-class! vis COPYFROMPARENT)
 
   (let ((win (xcreatewindow
-              *display* root
+              *display*
+              (xrootwindow *display* screen)
               0 0 swid whei 0
               (xdefaultdepth *display* screen)
               INPUTOUTPUT vis
@@ -143,9 +143,9 @@
               attr)))
     (assert win)
 
-    ;;;
-    ;;; Window Properties
-    ;;;
+    ;;
+    ;; Window Properties
+    ;;
     (xstorename *display* win "jjfpanel")
 
     (let ((p (make-xtextproperty))
@@ -178,15 +178,10 @@
                   "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
                   "C_return(strut);"))
 
-    (xselectinput *display* win
-                  (bitwise-ior
-                   EXPOSUREMASK
-                   BUTTONPRESSMASK
-                   STRUCTURENOTIFYMASK))
-
     (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
       (let-location ((atm unsigned-long d-atom))
         (xsetwmprotocols *display* win (location atm) 1)))
+
 
     (define (handleexpose)
       (let ((ws *widgets*)
@@ -237,6 +232,10 @@
                      font)
                     *widgets*))
 
+        (xselectinput *display* win
+                      (bitwise-ior EXPOSUREMASK
+                                   BUTTONPRESSMASK
+                                   STRUCTURENOTIFYMASK))
         (xmapwindow *display* win)
         (xnextevent *display* event)
         (handleexpose)
