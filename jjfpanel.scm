@@ -70,24 +70,33 @@
   (vector-ref property 3))
 
 
+(define (get-font font-name)
+  (let ((font (xloadqueryfont *display* font-name)))
+    (assert font)
+    font))
+
+
 (let* ((screen (xdefaultscreen *display*))
        (root (xrootwindow *display* screen))
        (swid (xdisplaywidth *display* screen))
        (shei (xdisplayheight *display* screen))
        (attr (make-xsetwindowattributes))
-       (vis (make-visual)))
+       (vis (make-visual))
+       (font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*")))
   (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-override_redirect! attr 1)
   (set-visual-class! vis COPYFROMPARENT)
 
-  (let ((win (xcreatewindow
-              *display* root
-              0 0 swid 20 0
-              (xdefaultdepth *display* screen)
-              INPUTOUTPUT vis
-              (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-              attr)))
+  (let* ((whei  (+ (xfontstruct-max_bounds-ascent font)
+                   (xfontstruct-max_bounds-descent font)))
+         (win (xcreatewindow
+               *display* root
+               0 0 swid whei 0
+               (xdefaultdepth *display* screen)
+               INPUTOUTPUT vis
+               (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+               attr)))
     (assert win)
 
     ;;;
@@ -131,18 +140,18 @@
         (xsetwmprotocols *display* win (location atm) 1)))
 
 
-    (let ((font (xloadfont *display* "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*")))
-      (assert font)
+    (let ((font font))
       (let ((gc (xcreategc *display* win 0 #f))
             (event (make-xevent)))
         (xsetbackground *display* gc (xblackpixel *display* screen))
         (xsetforeground *display* gc (xwhitepixel *display* screen))
         (xsetfunction *display* gc GXCOPY)
-        (xsetfont *display* gc font)
+        (xsetfont *display* gc (xfontstruct-fid font))
 
         (define (handleexpose)
-          (let ((text "[j-e2,s,m-e267,lam-e23]"))
-            (xdrawstring *display* win gc 10 18 text (string-length text))))
+          (let ((text "[j-e2,s,m-e267,lam-e23]")
+                (y (xfontstruct-max_bounds-ascent font)))
+            (xdrawstring *display* win gc 10 y text (string-length text))))
 
         (define (eventloop return)
           (xnextevent *display* event)
