@@ -1,12 +1,12 @@
 
-(require-extension miscmacros)
-(require-extension srfi-69) ;; hash tables
-(require-extension srfi-4)
-(require-extension xlib)
-(require-extension posix)
-(require-extension lolevel)
-(import foreign)
+(import chicken scheme extras foreign)
 
+(use miscmacros
+     srfi-4  ;; homogeneous numeric vector datatypes
+     srfi-69 ;; hash tables
+     lolevel
+     posix
+     xlib)
 
 (define syms (make-hash-table))
 (hash-table-set! syms ABOVE "ABOVE")
