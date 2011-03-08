@@ -45,7 +45,7 @@
                    (xinternatom *display* "CARDINAL" 0)
                    32
                    PROPMODEREPLACE
-                   (strut-callback)
+                   (strut-callback) ;; wicked-looking foreign-lambda
                    12))
 
 (define (make-atom-property atom-name)
@@ -82,21 +82,22 @@
        (shei (xdisplayheight *display* screen))
        (attr (make-xsetwindowattributes))
        (vis (make-visual))
-       (font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*")))
+       (font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*"))
+       ;; i find even these common fonts extend a pixel lower than their
+       ;; declared descent.  tsk tsk.
+       (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
   (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-override_redirect! attr 1)
   (set-visual-class! vis COPYFROMPARENT)
 
-  (let* ((whei  (+ (xfontstruct-max_bounds-ascent font)
-                   (xfontstruct-max_bounds-descent font)))
-         (win (xcreatewindow
-               *display* root
-               0 0 swid whei 0
-               (xdefaultdepth *display* screen)
-               INPUTOUTPUT vis
-               (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-               attr)))
+  (let ((win (xcreatewindow
+              *display* root
+              0 0 swid whei 0
+              (xdefaultdepth *display* screen)
+              INPUTOUTPUT vis
+              (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+              attr)))
     (assert win)
 
     ;;;
@@ -124,6 +125,11 @@
     (window-property-append win "_NET_WM_STATE"
                             (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
 
+    ;; Struts: left, right, top, bottom,
+    ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+    ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+    ;;
+    ;; so for a top panel, we set top, top_start_x, and top_end_x.
     (set-struts win
                 (foreign-lambda* c-pointer ()
                   "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
@@ -148,9 +154,9 @@
       (xsetfont *display* gc (xfontstruct-fid font))
 
       (define (handleexpose)
-        (let ((text "[j-e2,s,m-e267,lam-e23]")
-              (y (xfontstruct-max_bounds-ascent font)))
-          (xdrawstring *display* win gc 10 y text (string-length text))))
+        (let ((text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+              (y (xfontstruct-ascent font)))
+          (xdrawimagestring *display* win gc 10 y text (string-length text))))
 
       (define (eventloop return)
         (xnextevent *display* event)
