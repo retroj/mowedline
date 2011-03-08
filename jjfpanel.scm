@@ -140,45 +140,44 @@
         (xsetwmprotocols *display* win (location atm) 1)))
 
 
-    (let ((font font))
-      (let ((gc (xcreategc *display* win 0 #f))
-            (event (make-xevent)))
-        (xsetbackground *display* gc (xblackpixel *display* screen))
-        (xsetforeground *display* gc (xwhitepixel *display* screen))
-        (xsetfunction *display* gc GXCOPY)
-        (xsetfont *display* gc (xfontstruct-fid font))
+    (let ((gc (xcreategc *display* win 0 #f))
+          (event (make-xevent)))
+      (xsetbackground *display* gc (xblackpixel *display* screen))
+      (xsetforeground *display* gc (xwhitepixel *display* screen))
+      (xsetfunction *display* gc GXCOPY)
+      (xsetfont *display* gc (xfontstruct-fid font))
 
-        (define (handleexpose)
-          (let ((text "[j-e2,s,m-e267,lam-e23]")
-                (y (xfontstruct-max_bounds-ascent font)))
-            (xdrawstring *display* win gc 10 y text (string-length text))))
+      (define (handleexpose)
+        (let ((text "[j-e2,s,m-e267,lam-e23]")
+              (y (xfontstruct-max_bounds-ascent font)))
+          (xdrawstring *display* win gc 10 y text (string-length text))))
 
-        (define (eventloop return)
-          (xnextevent *display* event)
-          (let ((type (xevent-type event)))
-            (cond
-             ((= type CLIENTMESSAGE)
-              (display "closed!\n")
-              (return #t))
-
-             ((= type EXPOSE)
-              (handleexpose)
-              (display "expose\n"))
-
-             ((= type BUTTONPRESS)
-              (display "buttonpress\n")
-              (return #t))
-
-             (else
-              (display "event ")
-              (display (xevent-type event))
-              (display "\n"))))
-          (eventloop return))
-
-        (xmapwindow *display* win)
+      (define (eventloop return)
         (xnextevent *display* event)
-        (handleexpose)
-        (xflush *display*)
-        (call/cc eventloop)))))
+        (let ((type (xevent-type event)))
+          (cond
+           ((= type CLIENTMESSAGE)
+            (display "closed!\n")
+            (return #t))
+
+           ((= type EXPOSE)
+            (handleexpose)
+            (display "expose\n"))
+
+           ((= type BUTTONPRESS)
+            (display "buttonpress\n")
+            (return #t))
+
+           (else
+            (display "event ")
+            (display (xevent-type event))
+            (display "\n"))))
+        (eventloop return))
+
+      (xmapwindow *display* win)
+      (xnextevent *display* event)
+      (handleexpose)
+      (xflush *display*)
+      (call/cc eventloop))))
 
 (xclosedisplay *display*)
