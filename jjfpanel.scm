@@ -4,9 +4,52 @@
 (use miscmacros
      srfi-4  ;; homogeneous numeric vector datatypes
      srfi-69 ;; hash tables
+     coops
      lolevel
      posix
      xlib)
+
+
+(define-generic (widget-draw widget x))
+
+(define-class <widget> ()
+  ((name)
+   (position initform: 'left)
+   (flex initform: #f)
+   (gc)
+   (win)))
+
+;; Text Widget
+;;
+(define-class <text-widget> (<widget>)
+  ((text initform: "")
+   (font)))
+
+(define (make-text-widget name text win screen font)
+  (let ((w (make <text-widget>
+             'name name
+             'text text
+             'win win
+             'font font))
+        (gc (xcreategc *display* win 0 #f)))
+    (xsetbackground *display* gc (xblackpixel *display* screen))
+    (xsetforeground *display* gc (xwhitepixel *display* screen))
+    (xsetfunction *display* gc GXCOPY)
+    (xsetfont *display* gc (xfontstruct-fid font))
+    (set! (slot-value w 'gc) gc)
+    w))
+
+(define-method (widget-draw (widget <text-widget>) x)
+  (let ((text (slot-value widget 'text))
+        (baseline (xfontstruct-ascent (slot-value widget 'font))))
+    (xdrawimagestring *display*
+                      (slot-value widget 'win)
+                      (slot-value widget 'gc)
+                      x baseline text (string-length text))))
+
+
+(define *widgets* (list))
+
 
 
 (define *display* (xopendisplay #f))
@@ -145,19 +188,16 @@
       (let-location ((atm unsigned-long d-atom))
         (xsetwmprotocols *display* win (location atm) 1)))
 
+    (define (handleexpose)
+      (let ((ws *widgets*)
+            (left 10)
+            (right swid))
+        (while (not (null? ws))
+          (let ((w (car ws)))
+            (widget-draw w left))
+          (set! ws (cdr ws)))))
 
-    (let ((gc (xcreategc *display* win 0 #f))
-          (event (make-xevent)))
-      (xsetbackground *display* gc (xblackpixel *display* screen))
-      (xsetforeground *display* gc (xwhitepixel *display* screen))
-      (xsetfunction *display* gc GXCOPY)
-      (xsetfont *display* gc (xfontstruct-fid font))
-
-      (define (handleexpose)
-        (let ((text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-              (y (xfontstruct-ascent font)))
-          (xdrawimagestring *display* win gc 10 y text (string-length text))))
-
+    (let ((event (make-xevent)))
       (define (eventloop return)
         (xnextevent *display* event)
         (let ((type (xevent-type event)))
@@ -180,10 +220,27 @@
             (display "\n"))))
         (eventloop return))
 
-      (xmapwindow *display* win)
-      (xnextevent *display* event)
-      (handleexpose)
-      (xflush *display*)
-      (call/cc eventloop))))
+
+      (let ((gc (xcreategc *display* win 0 #f)))
+        (xsetbackground *display* gc (xblackpixel *display* screen))
+        (xsetforeground *display* gc (xwhitepixel *display* screen))
+        (xsetfunction *display* gc GXCOPY)
+        (xsetfont *display* gc (xfontstruct-fid font))
+
+        ;; push a widget
+        (set! *widgets*
+              (cons (make-text-widget
+                     "some-text"
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+                     win
+                     screen
+                     font)
+                    *widgets*))
+
+        (xmapwindow *display* win)
+        (xnextevent *display* event)
+        (handleexpose)
+        (xflush *display*)
+        (call/cc eventloop)))))
 
 (xclosedisplay *display*)
