@@ -127,7 +127,7 @@
     (set-struts win
                 (foreign-lambda* c-pointer ()
                   "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
-                  "return(strut);"))
+                  "C_return(strut);"))
 
     (xselectinput *display* win
                   (bitwise-ior
