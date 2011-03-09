@@ -1,11 +1,10 @@
 
 (import chicken scheme extras foreign)
 
-(use miscmacros
-     srfi-4  ;; homogeneous numeric vector datatypes
-     srfi-69 ;; hash tables
+(use srfi-4  ;; homogeneous numeric vector datatypes
      coops
      lolevel
+     miscmacros
      posix
      xlib)
 
