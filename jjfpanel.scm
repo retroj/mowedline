@@ -3,6 +3,7 @@
 
 (use srfi-4 ;; homogeneous numeric vectors
      coops
+     lolevel
      miscmacros
      posix
      xlib)
@@ -88,7 +89,7 @@
 
 (define (make-text-property textp)
   (let ((tp (make-xtextproperty)))
-    (set-xtextproperty-value! tp (location textp))
+    (set-xtextproperty-value! tp (make-locative textp))
     (set-xtextproperty-encoding! tp XA_STRING)
     (set-xtextproperty-format! tp 32)
     (set-xtextproperty-nitems! tp 1)
