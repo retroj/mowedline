@@ -1,8 +1,7 @@
 
 (import chicken scheme extras foreign)
 
-(use srfi-4  ;; homogeneous numeric vector datatypes
-     coops
+(use coops
      lolevel
      miscmacros
      posix
