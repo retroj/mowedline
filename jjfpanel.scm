@@ -209,15 +209,12 @@
           (display "\n"))))
       (eventloop return))
 
-    ;; push a widget
-    (set! *widgets*
-          (cons (make-text-widget
-                 "some-text"
-                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-                 screen
-                 font)
-                *widgets*))
 
+    (push! (make-text-widget "some-text"
+                             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+                             screen
+                             font)
+           *widgets*)
     (xselectinput *display* *window*
                   (bitwise-ior EXPOSUREMASK
                                BUTTONPRESSMASK
