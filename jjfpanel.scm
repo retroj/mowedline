@@ -143,95 +143,95 @@
                   attr))
   (assert *window*)
 
-    ;;
-    ;; Window Properties
-    ;;
-    (xstorename *display* *window* "jjfpanel")
+  ;;
+  ;; Window Properties
+  ;;
+  (xstorename *display* *window* "jjfpanel")
 
-    (let ((p (make-xtextproperty))
-          (str (xtextproperty-make (get-host-name))))
-      (xstringlisttotextproperty str 1 p)
-      (xsetwmclientmachine *display* *window* p))
+  (let ((p (make-xtextproperty))
+        (str (xtextproperty-make (get-host-name))))
+    (xstringlisttotextproperty str 1 p)
+    (xsetwmclientmachine *display* *window* p))
 
-    (window-property-set *window* "_NET_WM_PID"
-                         (make-number-property (current-process-id)))
-    (window-property-set *window* "_NET_WM_WINDOW_TYPE"
-                         (make-atom-property "_NET_WM_TYPE_DOCK"))
-    (window-property-set *window* "_NET_WM_DESKTOP"
-                         (make-number-property #xffffffff))
-    (window-property-set *window* "_NET_WM_STATE"
-                         (make-atom-property "_NET_WM_STATE_BELOW"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_STICKY"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
+  (window-property-set *window* "_NET_WM_PID"
+                       (make-number-property (current-process-id)))
+  (window-property-set *window* "_NET_WM_WINDOW_TYPE"
+                       (make-atom-property "_NET_WM_TYPE_DOCK"))
+  (window-property-set *window* "_NET_WM_DESKTOP"
+                       (make-number-property #xffffffff))
+  (window-property-set *window* "_NET_WM_STATE"
+                       (make-atom-property "_NET_WM_STATE_BELOW"))
+  (window-property-append *window* "_NET_WM_STATE"
+                          (make-atom-property "_NET_WM_STATE_STICKY"))
+  (window-property-append *window* "_NET_WM_STATE"
+                          (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
+  (window-property-append *window* "_NET_WM_STATE"
+                          (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
 
-    ;; Struts: left, right, top, bottom,
-    ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-    ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-    ;;
-    ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (set-struts *window*
-                (foreign-lambda* c-pointer ()
-                  "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
-                  "C_return(strut);"))
+  ;; Struts: left, right, top, bottom,
+  ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+  ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+  ;;
+  ;; so for a top panel, we set top, top_start_x, and top_end_x.
+  (set-struts *window*
+              (foreign-lambda* c-pointer ()
+                "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
+                "C_return(strut);"))
 
-    (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
-      (let-location ((atm unsigned-long d-atom))
-        (xsetwmprotocols *display* *window* (location atm) 1)))
+  (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
+    (let-location ((atm unsigned-long d-atom))
+      (xsetwmprotocols *display* *window* (location atm) 1)))
 
 
-    (define (handleexpose)
-      (let ((ws *widgets*)
-            (left 10)
-            (right swid))
-        (while (not (null? ws))
-          (let ((w (car ws)))
-            (widget-draw w left))
-          (set! ws (cdr ws)))))
+  (define (handleexpose)
+    (let ((ws *widgets*)
+          (left 10)
+          (right swid))
+      (while (not (null? ws))
+        (let ((w (car ws)))
+          (widget-draw w left))
+        (set! ws (cdr ws)))))
 
-    (let ((event (make-xevent)))
-      (define (eventloop return)
-        (xnextevent *display* event)
-        (let ((type (xevent-type event)))
-          (cond
-           ((= type CLIENTMESSAGE)
-            (display "closed!\n")
-            (return #t))
+  (let ((event (make-xevent)))
+    (define (eventloop return)
+      (xnextevent *display* event)
+      (let ((type (xevent-type event)))
+        (cond
+         ((= type CLIENTMESSAGE)
+          (display "closed!\n")
+          (return #t))
 
-           ((= type EXPOSE)
-            (handleexpose)
-            (display "expose\n"))
+         ((= type EXPOSE)
+          (handleexpose)
+          (display "expose\n"))
 
-           ((= type BUTTONPRESS)
-            (display "buttonpress\n")
-            (return #t))
+         ((= type BUTTONPRESS)
+          (display "buttonpress\n")
+          (return #t))
 
-           (else
-            (display "event ")
-            (display (xevent-type event))
-            (display "\n"))))
-        (eventloop return))
+         (else
+          (display "event ")
+          (display (xevent-type event))
+          (display "\n"))))
+      (eventloop return))
 
-        ;; push a widget
-        (set! *widgets*
-              (cons (make-text-widget
-                     "some-text"
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-                     screen
-                     font)
-                    *widgets*))
+    ;; push a widget
+    (set! *widgets*
+          (cons (make-text-widget
+                 "some-text"
+                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+                 screen
+                 font)
+                *widgets*))
 
-        (xselectinput *display* *window*
-                      (bitwise-ior EXPOSUREMASK
-                                   BUTTONPRESSMASK
-                                   STRUCTURENOTIFYMASK))
-        (xmapwindow *display* *window*)
-        (xnextevent *display* event)
-        (handleexpose)
-        (xflush *display*)
-        (call/cc eventloop)))
+    (xselectinput *display* *window*
+                  (bitwise-ior EXPOSUREMASK
+                               BUTTONPRESSMASK
+                               STRUCTURENOTIFYMASK))
+    (xmapwindow *display* *window*)
+    (xnextevent *display* event)
+    (handleexpose)
+    (xflush *display*)
+    (call/cc eventloop)))
 
 (xclosedisplay *display*)
