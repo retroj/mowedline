@@ -66,7 +66,6 @@
 ;;; Window Property Utils
 ;;;
 
-
 (define (property-type property)
   (vector-ref property 0))
 (define (property-format property)
