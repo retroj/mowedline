@@ -8,11 +8,19 @@
      xlib)
 
 
+;;;
+;;; Globals
+;;;
+
 (define *display* (xopendisplay #f))
 (assert *display*)
 
 (define *window* #f)
 
+
+;;;
+;;; Widgets
+;;;
 
 (define-generic (widget-draw widget x))
 
@@ -54,6 +62,31 @@
 
 
 
+;;;
+;;; Window Property Utils
+;;;
+
+
+(define (property-type property)
+  (vector-ref property 0))
+(define (property-format property)
+  (vector-ref property 1))
+(define (property-data property)
+  (vector-ref property 2))
+(define (property-count property)
+  (vector-ref property 3))
+
+(define (make-atom-property atom-name)
+  (let ((data (xinternatom *display* atom-name 0)))
+    (let-location ((data unsigned-long data))
+      (vector "ATOM" 32
+              (location data)    
+              1))))
+
+(define (make-number-property number)
+  (let-location ((data unsigned-long number))
+    (vector "CARDINAL" 32 (location data) 1)))
+
 (define (xtextproperty-make textp)
   (let ((tp (make-xtextproperty)))
     (set-xtextproperty-value! tp (location textp))
@@ -84,26 +117,6 @@
   (window-property-set win "_NET_WM_STRUT_PARTIAL"
                        (vector "CARDINAL" 32 (strut-callback) 12)))
 
-(define (make-atom-property atom-name)
-  (let ((data (xinternatom *display* atom-name 0)))
-    (let-location ((data unsigned-long data))
-      (vector "ATOM" 32
-              (location data)    
-              1))))
-
-(define (make-number-property number)
-  (let-location ((data unsigned-long number))
-    (vector "CARDINAL" 32 (location data) 1)))
-
-
-(define (property-type property)
-  (vector-ref property 0))
-(define (property-format property)
-  (vector-ref property 1))
-(define (property-data property)
-  (vector-ref property 2))
-(define (property-count property)
-  (vector-ref property 3))
 
 
 (define (get-font font-name)
