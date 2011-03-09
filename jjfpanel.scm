@@ -1,7 +1,8 @@
 
 (import chicken scheme extras foreign)
 
-(use coops
+(use srfi-4 ;; homogeneous numeric vectors
+     coops
      lolevel
      miscmacros
      posix
@@ -112,9 +113,15 @@
                    (property-data value)
                    (property-count value)))
 
-(define (set-struts win strut-callback)
-  (window-property-set win "_NET_WM_STRUT_PARTIAL"
-                       (vector "CARDINAL" 32 (strut-callback) 12)))
+(define (set-struts win strut-spec)
+  (let ((values ((foreign-lambda* c-pointer ((u32vector s))
+                   "unsigned long strut[12] ="
+                   "    { s[0], s[1], s[2], s[3], s[4], s[5],"
+                   "      s[6], s[7], s[8], s[9], s[10], s[11] };"
+                   "C_return(strut);")
+                 (list->u32vector strut-spec))))
+    (window-property-set win "_NET_WM_STRUT_PARTIAL"
+                         (vector "CARDINAL" 32 values 12))))
 
 
 
@@ -177,10 +184,7 @@
   ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
   ;;
   ;; so for a top panel, we set top, top_start_x, and top_end_x.
-  (set-struts *window*
-              (foreign-lambda* c-pointer ()
-                "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
-                "C_return(strut);"))
+  (set-struts *window* (list 0 0 whei 0 0 0 0 0 0 0 0 0))
 
   (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
     (let-location ((atm unsigned-long d-atom))
