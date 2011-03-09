@@ -16,6 +16,8 @@
 (define *display* (xopendisplay #f))
 (assert *display*)
 
+(define *screen* #f)
+
 (define *window* #f)
 
 
@@ -37,18 +39,14 @@
   ((text initform: "")
    (font)))
 
-(define (make-text-widget name text screen font)
-  (let ((w (make <text-widget>
-             'name name
-             'text text
-             'font font))
-        (gc (xcreategc *display* *window* 0 #f)))
-    (xsetbackground *display* gc (xblackpixel *display* screen))
-    (xsetforeground *display* gc (xwhitepixel *display* screen))
+(define-method (initialize-instance (widget <text-widget>))
+  (call-next-method)
+  (let ((gc (xcreategc *display* *window* 0 #f)))
+    (xsetbackground *display* gc (xblackpixel *display* *screen*))
+    (xsetforeground *display* gc (xwhitepixel *display* *screen*))
     (xsetfunction *display* gc GXCOPY)
-    (xsetfont *display* gc (xfontstruct-fid font))
-    (set! (slot-value w 'gc) gc)
-    w))
+    (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
+    (set! (slot-value widget 'gc) gc)))
 
 (define-method (widget-draw (widget <text-widget>) x)
   (let ((text (slot-value widget 'text))
@@ -149,6 +147,7 @@
   (set-xsetwindowattributes-override_redirect! attr 1)
   (set-visual-class! vis COPYFROMPARENT)
 
+  (set! *screen* screen)
   (set! *window* (xcreatewindow
                   *display*
                   (xrootwindow *display* screen)
@@ -233,10 +232,10 @@
       (eventloop return))
 
 
-    (push! (make-text-widget "some-text"
-                             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-                             screen
-                             font)
+    (push! (make <text-widget>
+             'name "some-text"
+             'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+             'font font)
            *widgets*)
     (xselectinput *display* *window*
                   (bitwise-ior EXPOSUREMASK
