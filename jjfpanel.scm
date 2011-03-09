@@ -148,7 +148,6 @@
                   attr))
   (assert *window*)
 
-  ;;
   ;; Window Properties
   ;;
   (xstorename *display* *window* "jjfpanel")
@@ -188,6 +187,8 @@
       (xsetwmprotocols *display* *window* (location atm) 1)))
 
 
+  ;; "Main"
+  ;;
   (define (handleexpose)
     (let ((ws *widgets*)
           (left 10)
