@@ -9,6 +9,12 @@
      xlib)
 
 
+(define *display* (xopendisplay #f))
+(assert *display*)
+
+(define *window* #f)
+
+
 (define-generic (widget-draw widget x))
 
 (define-class <widget> ()
@@ -47,12 +53,6 @@
 
 (define *widgets* (list))
 
-
-
-(define *display* (xopendisplay #f))
-(assert *display*)
-
-(define *window* #f)
 
 
 (define (xtextproperty-make textp)
