@@ -82,13 +82,8 @@
                    (property-count value)))
 
 (define (set-struts win strut-callback)
-  (xchangeproperty *display* win
-                   (xinternatom *display* "_NET_WM_STRUT_PARTIAL" 0)
-                   (xinternatom *display* "CARDINAL" 0)
-                   32
-                   PROPMODEREPLACE
-                   (strut-callback) ;; wicked-looking foreign-lambda
-                   12))
+  (window-property-set win "_NET_WM_STRUT_PARTIAL"
+                       (vector "CARDINAL" 32 (strut-callback) 12)))
 
 (define (make-atom-property atom-name)
   (let ((data (xinternatom *display* atom-name 0)))
