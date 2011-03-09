@@ -139,7 +139,11 @@
        (font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*"))
        ;; i find even these common fonts extend a pixel lower than their
        ;; declared descent.  tsk tsk.
-       (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
+       (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2))
+       (position 'top)
+       (window-top (case position
+                     ((bottom) (- shei whei))
+                     (else 0))))
   (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
   (set-xsetwindowattributes-override_redirect! attr 1)
@@ -148,7 +152,7 @@
   (set! *window* (xcreatewindow
                   *display*
                   (xrootwindow *display* screen)
-                  0 0 swid whei 0
+                  0 window-top swid whei 0
                   (xdefaultdepth *display* screen)
                   INPUTOUTPUT vis
                   (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
@@ -184,7 +188,10 @@
   ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
   ;;
   ;; so for a top panel, we set top, top_start_x, and top_end_x.
-  (set-struts *window* (list 0 0 whei 0 0 0 0 0 0 0 0 0))
+  (set-struts *window*
+              (if (eq? position 'bottom)
+                  (list 0 0 0 whei 0 0 0 0 0 0 0 0)
+                  (list 0 0 whei 0 0 0 0 0 0 0 0 0)))
 
   (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
     (let-location ((atm unsigned-long d-atom))
