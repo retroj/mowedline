@@ -16,8 +16,7 @@
   ((name)
    (position initform: 'left)
    (flex initform: #f)
-   (gc)
-   (win)))
+   (gc)))
 
 ;; Text Widget
 ;;
@@ -25,13 +24,12 @@
   ((text initform: "")
    (font)))
 
-(define (make-text-widget name text win screen font)
+(define (make-text-widget name text screen font)
   (let ((w (make <text-widget>
              'name name
              'text text
-             'win win
              'font font))
-        (gc (xcreategc *display* win 0 #f)))
+        (gc (xcreategc *display* *window* 0 #f)))
     (xsetbackground *display* gc (xblackpixel *display* screen))
     (xsetforeground *display* gc (xwhitepixel *display* screen))
     (xsetfunction *display* gc GXCOPY)
@@ -43,7 +41,7 @@
   (let ((text (slot-value widget 'text))
         (baseline (xfontstruct-ascent (slot-value widget 'font))))
     (xdrawimagestring *display*
-                      (slot-value widget 'win)
+                      *window*
                       (slot-value widget 'gc)
                       x baseline text (string-length text))))
 
@@ -54,6 +52,8 @@
 
 (define *display* (xopendisplay #f))
 (assert *display*)
+
+(define *window* #f)
 
 
 (define (xtextproperty-make textp)
@@ -133,39 +133,39 @@
   (set-xsetwindowattributes-override_redirect! attr 1)
   (set-visual-class! vis COPYFROMPARENT)
 
-  (let ((win (xcreatewindow
-              *display*
-              (xrootwindow *display* screen)
-              0 0 swid whei 0
-              (xdefaultdepth *display* screen)
-              INPUTOUTPUT vis
-              (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-              attr)))
-    (assert win)
+  (set! *window* (xcreatewindow
+                  *display*
+                  (xrootwindow *display* screen)
+                  0 0 swid whei 0
+                  (xdefaultdepth *display* screen)
+                  INPUTOUTPUT vis
+                  (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                  attr))
+  (assert *window*)
 
     ;;
     ;; Window Properties
     ;;
-    (xstorename *display* win "jjfpanel")
+    (xstorename *display* *window* "jjfpanel")
 
     (let ((p (make-xtextproperty))
           (str (xtextproperty-make (get-host-name))))
       (xstringlisttotextproperty str 1 p)
-      (xsetwmclientmachine *display* win p))
+      (xsetwmclientmachine *display* *window* p))
 
-    (window-property-set win "_NET_WM_PID"
+    (window-property-set *window* "_NET_WM_PID"
                          (make-number-property (current-process-id)))
-    (window-property-set win "_NET_WM_WINDOW_TYPE"
+    (window-property-set *window* "_NET_WM_WINDOW_TYPE"
                          (make-atom-property "_NET_WM_TYPE_DOCK"))
-    (window-property-set win "_NET_WM_DESKTOP"
+    (window-property-set *window* "_NET_WM_DESKTOP"
                          (make-number-property #xffffffff))
-    (window-property-set win "_NET_WM_STATE"
+    (window-property-set *window* "_NET_WM_STATE"
                          (make-atom-property "_NET_WM_STATE_BELOW"))
-    (window-property-append win "_NET_WM_STATE"
+    (window-property-append *window* "_NET_WM_STATE"
                             (make-atom-property "_NET_WM_STATE_STICKY"))
-    (window-property-append win "_NET_WM_STATE"
+    (window-property-append *window* "_NET_WM_STATE"
                             (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-    (window-property-append win "_NET_WM_STATE"
+    (window-property-append *window* "_NET_WM_STATE"
                             (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
 
     ;; Struts: left, right, top, bottom,
@@ -173,14 +173,14 @@
     ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
     ;;
     ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (set-struts win
+    (set-struts *window*
                 (foreign-lambda* c-pointer ()
                   "unsigned long strut[12] = { 0, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0 };"
                   "C_return(strut);"))
 
     (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
       (let-location ((atm unsigned-long d-atom))
-        (xsetwmprotocols *display* win (location atm) 1)))
+        (xsetwmprotocols *display* *window* (location atm) 1)))
 
 
     (define (handleexpose)
@@ -215,31 +215,23 @@
             (display "\n"))))
         (eventloop return))
 
-
-      (let ((gc (xcreategc *display* win 0 #f)))
-        (xsetbackground *display* gc (xblackpixel *display* screen))
-        (xsetforeground *display* gc (xwhitepixel *display* screen))
-        (xsetfunction *display* gc GXCOPY)
-        (xsetfont *display* gc (xfontstruct-fid font))
-
         ;; push a widget
         (set! *widgets*
               (cons (make-text-widget
                      "some-text"
                      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-                     win
                      screen
                      font)
                     *widgets*))
 
-        (xselectinput *display* win
+        (xselectinput *display* *window*
                       (bitwise-ior EXPOSUREMASK
                                    BUTTONPRESSMASK
                                    STRUCTURENOTIFYMASK))
-        (xmapwindow *display* win)
+        (xmapwindow *display* *window*)
         (xnextevent *display* event)
         (handleexpose)
         (xflush *display*)
-        (call/cc eventloop)))))
+        (call/cc eventloop)))
 
 (xclosedisplay *display*)
