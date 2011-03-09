@@ -3,7 +3,6 @@
 
 (use srfi-4 ;; homogeneous numeric vectors
      coops
-     lolevel
      miscmacros
      posix
      xlib)
