@@ -86,7 +86,7 @@
   (let-location ((data unsigned-long number))
     (vector "CARDINAL" 32 (location data) 1)))
 
-(define (xtextproperty-make textp)
+(define (make-text-property textp)
   (let ((tp (make-xtextproperty)))
     (set-xtextproperty-value! tp (location textp))
     (set-xtextproperty-encoding! tp XA_STRING)
@@ -154,7 +154,7 @@
   (xstorename *display* *window* "jjfpanel")
 
   (let ((p (make-xtextproperty))
-        (str (xtextproperty-make (get-host-name))))
+        (str (make-text-property (get-host-name))))
     (xstringlisttotextproperty str 1 p)
     (xsetwmclientmachine *display* *window* p))
 
