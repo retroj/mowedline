@@ -3,6 +3,7 @@
 
 (use srfi-4 ;; homogeneous numeric vectors
      coops
+     dbus
      lolevel
      miscmacros
      posix
@@ -234,8 +235,13 @@
        *widgets*
        wids)))
 
+  (define (update . params)
+    (printf "*** Received dbus message: ~s~%" params))
+
+
   (let ((event (make-xevent)))
     (define (eventloop return)
+      (when (> (xpending *display*) 0)
       (xnextevent *display* event)
       (let ((type (xevent-type event)))
         (cond
@@ -255,6 +261,8 @@
           (display "event ")
           (display (xevent-type event))
           (display "\n"))))
+      )
+      (dbus:poll-for-message)
       (eventloop return))
 
 
@@ -263,6 +271,13 @@
              'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
              'font font)
            *widgets*)
+
+    (define dbus-context
+      (dbus:make-context service: 'jjfpanel.server
+                         interface: 'jjfpanel.interface))
+    (dbus:enable-polling-thread! enable: #f)
+    (dbus:register-method dbus-context "update" update)
+
     (xselectinput *display* *window*
                   (bitwise-ior EXPOSUREMASK
                                BUTTONPRESSMASK
