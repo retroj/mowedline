@@ -242,26 +242,25 @@
   (let ((event (make-xevent)))
     (define (eventloop return)
       (when (> (xpending *display*) 0)
-      (xnextevent *display* event)
-      (let ((type (xevent-type event)))
-        (cond
-         ((= type CLIENTMESSAGE)
-          (display "closed!\n")
-          (return #t))
+        (xnextevent *display* event)
+        (let ((type (xevent-type event)))
+          (cond
+           ((= type CLIENTMESSAGE)
+            (display "closed!\n")
+            (return #t))
 
-         ((= type EXPOSE)
-          (handleexpose)
-          (display "expose\n"))
+           ((= type EXPOSE)
+            (handleexpose)
+            (display "expose\n"))
 
-         ((= type BUTTONPRESS)
-          (display "buttonpress\n")
-          (return #t))
+           ((= type BUTTONPRESS)
+            (display "buttonpress\n")
+            (return #t))
 
-         (else
-          (display "event ")
-          (display (xevent-type event))
-          (display "\n"))))
-      )
+           (else
+            (display "event ")
+            (display (xevent-type event))
+            (display "\n")))))
       (dbus:poll-for-message)
       (eventloop return))
 
