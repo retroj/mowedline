@@ -239,8 +239,12 @@
     (printf "*** Received dbus message: ~s~%" params))
 
 
-  (let ((event (make-xevent)))
-    (define (eventloop return)
+  (let ((event (make-xevent))
+        (return #f))
+    (define (quit . params)
+      (return #t))
+
+    (define (eventloop)
       (when (> (xpending *display*) 0)
         (xnextevent *display* event)
         (let ((type (xevent-type event)))
@@ -262,7 +266,11 @@
             (display (xevent-type event))
             (display "\n")))))
       (dbus:poll-for-message)
-      (eventloop return))
+      (eventloop))
+
+    (define (start-eventloop ret)
+      (set! return ret)
+      (eventloop))
 
 
     (push! (make <text-widget>
@@ -276,6 +284,7 @@
                          interface: 'jjfpanel.interface))
     (dbus:enable-polling-thread! enable: #f)
     (dbus:register-method dbus-context "update" update)
+    (dbus:register-method dbus-context "quit" quit)
 
     (xselectinput *display* *window*
                   (bitwise-ior EXPOSUREMASK
@@ -285,6 +294,6 @@
     (xnextevent *display* event)
     (handleexpose)
     (xflush *display*)
-    (call/cc eventloop)))
+    (call/cc start-eventloop)))
 
 (xclosedisplay *display*)
