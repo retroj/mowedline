@@ -92,6 +92,20 @@
   (let-location ((data unsigned-long number))
     (vector "CARDINAL" 32 (location data) 1)))
 
+(define (make-numbers-property numbers)
+  (let* ((vec (list->u32vector numbers))
+         (len (u32vector-length vec))
+         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
+                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
+                  "int i;"
+                  "for (i = 0; i < length; i++) {"
+                  "    lvec[i] = s[i];"
+                  "}"
+                  "C_return(lvec);")
+                vec len)))
+    (set-finalizer! lvec free)
+    (vector "CARDINAL" 32 lvec len)))
+
 (define (make-text-property textp)
   (let ((tp (make-xtextproperty)))
     (set-xtextproperty-value! tp (make-locative textp))
@@ -117,22 +131,6 @@
                    PROPMODEAPPEND
                    (property-data value)
                    (property-count value)))
-
-(define (set-struts win strut-spec)
-  (let* ((vec (list->u32vector strut-spec))
-         (len (u32vector-length vec))
-         (struts ((foreign-lambda* c-pointer ((u32vector s) (int length))
-                    "unsigned long * strut = malloc(sizeof(unsigned long) * length);"
-                    "int i;"
-                    "for (i = 0; i < length; i++) {"
-                    "    strut[i] = s[i];"
-                    "}"
-                    "C_return(strut);")
-                  vec len)))
-    (set-finalizer! struts free)
-    (window-property-set win "_NET_WM_STRUT_PARTIAL"
-                         (vector "CARDINAL" 32 struts len))))
-
 
 
 (define (get-font font-name)
@@ -199,10 +197,11 @@
   ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
   ;;
   ;; so for a top panel, we set top, top_start_x, and top_end_x.
-  (set-struts *window*
-              (if (eq? position 'bottom)
-                  (list 0 0 0 whei 0 0 0 0 0 0 0 0)
-                  (list 0 0 whei 0 0 0 0 0 0 0 0 0)))
+  (window-property-set *window* "_NET_WM_STRUT_PARTIAL"
+                       (make-numbers-property
+                        (if (eq? position 'bottom)
+                            (list 0 0 0 whei 0 0 0 0 0 0 0 0)
+                            (list 0 0 whei 0 0 0 0 0 0 0 0 0))))
 
   (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
     (let-location ((atm unsigned-long d-atom))
