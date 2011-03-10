@@ -119,14 +119,19 @@
                    (property-count value)))
 
 (define (set-struts win strut-spec)
-  (let ((values ((foreign-lambda* c-pointer ((u32vector s))
-                   "unsigned long strut[12] ="
-                   "    { s[0], s[1], s[2], s[3], s[4], s[5],"
-                   "      s[6], s[7], s[8], s[9], s[10], s[11] };"
-                   "C_return(strut);")
-                 (list->u32vector strut-spec))))
+  (let* ((vec (list->u32vector strut-spec))
+         (len (u32vector-length vec))
+         (struts ((foreign-lambda* c-pointer ((u32vector s) (int length))
+                    "unsigned long * strut = malloc(sizeof(unsigned long) * length);"
+                    "int i;"
+                    "for (i = 0; i < length; i++) {"
+                    "    strut[i] = s[i];"
+                    "}"
+                    "C_return(strut);")
+                  vec len)))
+    (set-finalizer! struts free)
     (window-property-set win "_NET_WM_STRUT_PARTIAL"
-                         (vector "CARDINAL" 32 values 12))))
+                         (vector "CARDINAL" 32 struts len))))
 
 
 
