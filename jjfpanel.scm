@@ -25,13 +25,15 @@
 ;;; Widgets
 ;;;
 
-(define-generic (widget-draw widget x))
+(define-generic (widget-draw widget x wid))
+(define-generic (widget-width widget))
 
 (define-class <widget> ()
   ((name)
-   (position initform: 'left)
    (flex initform: #f)
    (gc)))
+
+(define-method (widget-width (widget <widget>)) 0)
 
 ;; Text Widget
 ;;
@@ -48,13 +50,18 @@
     (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
     (set! (slot-value widget 'gc) gc)))
 
-(define-method (widget-draw (widget <text-widget>) x)
+(define-method (widget-draw (widget <text-widget>) x wid)
   (let ((text (slot-value widget 'text))
         (baseline (xfontstruct-ascent (slot-value widget 'font))))
     (xdrawimagestring *display*
                       *window*
                       (slot-value widget 'gc)
                       x baseline text (string-length text))))
+
+(define-method (widget-width (widget <text-widget>))
+  (xtextwidth (slot-value widget 'font)
+              (slot-value widget 'text)
+              (string-length (slot-value widget 'text))))
 
 
 (define *widgets* (list))
@@ -200,13 +207,28 @@
   ;; "Main"
   ;;
   (define (handleexpose)
-    (let ((ws *widgets*)
-          (left 10)
-          (right swid))
-      (while (not (null? ws))
-        (let ((w (car ws)))
-          (widget-draw w left))
-        (set! ws (cdr ws)))))
+    (let* ((taken 0)
+           (flex 0)
+           (wids (map (lambda (x)
+                        (if* (slot-value x 'flex)
+                             (begin (set! flex (+ flex it))
+                                    #f)
+                             (let ((wid (widget-width x)))
+                               (set! taken (+ taken wid))
+                               wid)))
+                      *widgets*))
+           (remainder (- swid taken))
+           (flexunit (if (> flex 0) (/ remainder flex) 0))
+           (left 10))
+      (for-each
+       (lambda (w wid)
+         (cond (wid (widget-draw w left wid)
+                    (set! left (+ left wid)))
+               (else (let ((wid (* flexunit (slot-value w 'flex))))
+                       (widget-draw w left wid)
+                       (set! left (+ left wid))))))
+       *widgets*
+       wids)))
 
   (let ((event (make-xevent)))
     (define (eventloop return)
