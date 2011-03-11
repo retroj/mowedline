@@ -27,6 +27,8 @@
 ;;;
 
 (define-generic (widget-draw widget x wid))
+(define-generic (widget-height widget))
+(define-generic (widget-update widget params))
 (define-generic (widget-width widget))
 
 (define-class <widget> ()
@@ -34,7 +36,8 @@
    (flex initform: #f)
    (gc)))
 
-(define-method (widget-width (widget <widget>)) 0)
+(define-method (widget-height (widget <widget>)) 1)
+(define-method (widget-width (widget <widget>)) 1)
 
 ;; Text Widget
 ;;
@@ -49,15 +52,34 @@
     (xsetforeground *display* gc (xwhitepixel *display* *screen*))
     (xsetfunction *display* gc GXCOPY)
     (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
+    (xsetregion *display* gc (xcreateregion))
     (set! (slot-value widget 'gc) gc)))
 
 (define-method (widget-draw (widget <text-widget>) x wid)
+  ;; XCreateRegion() --> pointer to region
+  ;; XUnionRectWithRegion()
+  ;; XDestroyRegion()
+  ;; (xoffsetregion r x 0)
+
+  ; (xunionrectwithregion rect src dest)
+  ; (let ((r (xcreateregion)))
+  ;   (xsetregion *display* gc r))
   (let ((text (slot-value widget 'text))
         (baseline (xfontstruct-ascent (slot-value widget 'font))))
     (xdrawimagestring *display*
                       *window*
                       (slot-value widget 'gc)
                       x baseline text (string-length text))))
+
+(define-method (widget-height (widget <text-widget>))
+  (let ((font (slot-value widget 'font)))
+    (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
+
+(define-method (widget-update (widget <text-widget>) params)
+  ;; after update, the caller will call draw.  but efficiency could be
+  ;; gained if the caller knew if our width changed, thus determining how
+  ;; much of the window needed to be redrawn.
+  (set! (slot-value widget 'text) (first params)))
 
 (define-method (widget-width (widget <text-widget>))
   (xtextwidth (slot-value widget 'font)
@@ -236,7 +258,11 @@
        wids)))
 
   (define (update . params)
-    (printf "*** Received dbus message: ~s~%" params))
+    (printf "*** Received dbus message: ~s~%" params)
+    (let* ((name (first params))
+           (widget (find (lambda (w) (equal? (slot-value w 'name) name)) *widgets*)))
+      (widget-update widget (cdr params))
+      (handleexpose)))
 
 
   (let ((event (make-xevent))
