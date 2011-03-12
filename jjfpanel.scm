@@ -68,7 +68,9 @@
 ;;
 (define-class <text-widget> (<widget>)
   ((text initform: "")
-   (font)))
+   (font initform: (or (get-font "9x15bold")
+                       (get-font "*")
+                       (error "no font")))))
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
@@ -346,10 +348,7 @@
       (make-window '()
         (make <text-widget>
           'name "default"
-          'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-          'font (or (get-font "9x15bold")
-                    (get-font "*")
-                    (error "no font")))))
+          'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")))
 
     (define dbus-context
       (dbus:make-context service: 'jjfpanel.server
