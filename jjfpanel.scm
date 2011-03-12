@@ -4,6 +4,7 @@
 (use srfi-4 ;; homogeneous numeric vectors
      coops
      dbus
+     list-utils
      lolevel
      miscmacros
      posix
@@ -164,11 +165,18 @@
 (define (start-server)
   (set! *display* (xopendisplay #f))
   (assert *display*)
-  (define (make-window whei)
-    (let* ((screen (xdefaultscreen *display*))
+
+  (define (make-window properties . widgets)
+    (let* ((properties (plist->alist properties))
+           (screen (xdefaultscreen *display*))
            (swid (xdisplaywidth *display* screen))
            (shei (xdisplayheight *display* screen))
-           (position 'top)
+           (position (if* (assq position: properties)
+                          (cadr it)
+                          'top))
+           (whei (if* (assq height: properties)
+                      (cdr it)
+                      40)) ;;XXX: figure out height from widgets
            (window-top (case position
                          ((bottom) (- shei whei))
                          (else 0))))
@@ -302,7 +310,7 @@
            ;; i find even these common fonts extend a pixel lower than their
            ;; declared descent.  tsk tsk.
            (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
-      (make-window whei)
+      (make-window (list height: whei))
       (push! (make <text-widget>
                'name "some-text"
                'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
