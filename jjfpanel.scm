@@ -2,6 +2,7 @@
 (import chicken scheme extras foreign)
 
 (use srfi-4 ;; homogeneous numeric vectors
+     srfi-69 ;; hash tables
      coops
      dbus
      list-utils
@@ -19,7 +20,20 @@
 
 (define *screen* #f)
 
-(define *window* #f)
+(define *windows* (list))
+
+(define *widgets* (make-hash-table test: equal?))
+
+
+
+;;;
+;;; Window
+;;;
+
+(define-class <window> ()
+  ((screen)
+   (xwindow)
+   (widgets initform: (list))))
 
 
 ;;;
@@ -30,11 +44,22 @@
 (define-generic (widget-height widget))
 (define-generic (widget-update widget params))
 (define-generic (widget-width widget))
+(define-generic (widget-set-window! widget window))
 
 (define-class <widget> ()
   ((name)
    (flex initform: #f)
+   (window)
    (gc)))
+
+(define-method (initialize-instance (widget <widget>))
+  (call-next-method)
+  (when (hash-table-exists? *widgets* (slot-value widget 'name))
+    (error "duplicate widget name"))
+  (hash-table-set! *widgets* (slot-value widget 'name) widget))
+
+(define-method (widget-set-window! (widget <widget>) (window <window>))
+  (set! (slot-value widget 'window) window))
 
 (define-method (widget-height (widget <widget>)) 1)
 (define-method (widget-width (widget <widget>)) 1)
@@ -45,11 +70,13 @@
   ((text initform: "")
    (font)))
 
-(define-method (initialize-instance (widget <text-widget>))
+(define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
-  (let ((gc (xcreategc *display* *window* 0 #f)))
-    (xsetbackground *display* gc (xblackpixel *display* *screen*))
-    (xsetforeground *display* gc (xwhitepixel *display* *screen*))
+  (let ((gc (xcreategc *display*
+                       (slot-value window 'xwindow)
+                       0 #f)))
+    (xsetbackground *display* gc (xblackpixel *display* (slot-value window 'screen)))
+    (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen)))
     (xsetfunction *display* gc GXCOPY)
     (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
     ;;(xsetregion *display* gc (xcreateregion))
@@ -67,11 +94,13 @@
   (let ((text (slot-value widget 'text))
         (baseline (xfontstruct-ascent (slot-value widget 'font))))
     (xdrawimagestring *display*
-                      *window*
+                      (slot-value (slot-value widget 'window) 'xwindow)
                       (slot-value widget 'gc)
                       x baseline text (string-length text))))
 
 (define-method (widget-height (widget <text-widget>))
+  ;; i find even common fonts extend a pixel lower than their
+  ;; declared descent.  tsk tsk.
   (let ((font (slot-value widget 'font)))
     (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
 
@@ -85,9 +114,6 @@
   (xtextwidth (slot-value widget 'font)
               (slot-value widget 'text)
               (string-length (slot-value widget 'text))))
-
-
-(define *widgets* (list))
 
 
 
@@ -176,48 +202,47 @@
                           'top))
            (whei (if* (assq height: properties)
                       (cdr it)
-                      40)) ;;XXX: figure out height from widgets
+                      (fold max 1 (map widget-height widgets))))
            (window-top (case position
                          ((bottom) (- shei whei))
-                         (else 0))))
-      (set! *screen* screen)
-      (set! *window* (xcreatesimplewindow
-                      *display*
-                      (xrootwindow *display* screen)
-                      0 window-top swid whei 0
-                      (xblackpixel *display* screen)
-                      (xwhitepixel *display* screen)))
-      (assert *window*)
+                         (else 0)))
+           (xwindow (xcreatesimplewindow
+                     *display*
+                     (xrootwindow *display* screen)
+                     0 window-top swid whei 0
+                     (xblackpixel *display* screen)
+                     (xwhitepixel *display* screen))))
+      (assert xwindow)
       (let ((attr (make-xsetwindowattributes)))
         (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
         (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
         (set-xsetwindowattributes-override_redirect! attr 1)
-        (xchangewindowattributes *display* *window*
+        (xchangewindowattributes *display* xwindow
                                  (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
                                  attr))
 
       ;; Window Properties
       ;;
-      (xstorename *display* *window* "jjfpanel")
+      (xstorename *display* xwindow "jjfpanel")
 
       (let ((p (make-xtextproperty))
             (str (make-text-property (get-host-name))))
         (xstringlisttotextproperty str 1 p)
-        (xsetwmclientmachine *display* *window* p))
+        (xsetwmclientmachine *display* xwindow p))
 
-      (window-property-set *window* "_NET_WM_PID"
+      (window-property-set xwindow "_NET_WM_PID"
                            (make-number-property (current-process-id)))
-      (window-property-set *window* "_NET_WM_WINDOW_TYPE"
+      (window-property-set xwindow "_NET_WM_WINDOW_TYPE"
                            (make-atom-property "_NET_WM_TYPE_DOCK"))
-      (window-property-set *window* "_NET_WM_DESKTOP"
+      (window-property-set xwindow "_NET_WM_DESKTOP"
                            (make-number-property #xffffffff))
-      (window-property-set *window* "_NET_WM_STATE"
+      (window-property-set xwindow "_NET_WM_STATE"
                            (make-atom-property "_NET_WM_STATE_BELOW"))
-      (window-property-append *window* "_NET_WM_STATE"
+      (window-property-append xwindow "_NET_WM_STATE"
                               (make-atom-property "_NET_WM_STATE_STICKY"))
-      (window-property-append *window* "_NET_WM_STATE"
+      (window-property-append xwindow "_NET_WM_STATE"
                               (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-      (window-property-append *window* "_NET_WM_STATE"
+      (window-property-append xwindow "_NET_WM_STATE"
                               (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
 
       ;; Struts: left, right, top, bottom,
@@ -225,7 +250,7 @@
       ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
       ;;
       ;; so for a top panel, we set top, top_start_x, and top_end_x.
-      (window-property-set *window* "_NET_WM_STRUT_PARTIAL"
+      (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
                            (make-numbers-property
                             (if (eq? position 'bottom)
                                 (list 0 0 0 whei 0 0 0 0 0 0 0 0)
@@ -233,13 +258,25 @@
 
       (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
         (let-location ((atm unsigned-long d-atom))
-          (xsetwmprotocols *display* *window* (location atm) 1)))))
+          (xsetwmprotocols *display* xwindow (location atm) 1)))
+
+
+      (let ((window (make <window>
+                      'xwindow xwindow
+                      'screen screen
+                      'widgets widgets)))
+        (for-each (lambda (widget) (widget-set-window! widget window)) widgets)
+        (push! window *windows*)
+        window)))
 
 
   ;; "Main"
   ;;
-  (define (handleexpose)
-    (let* ((taken 0)
+  (define (handleexpose xwindow)
+    (let* ((window (find (lambda (window)
+                           (equal? (slot-value window 'xwindow) xwindow))
+                         *windows*))
+           (taken 0)
            (flex 0)
            (wids (map (lambda (x)
                         (if* (slot-value x 'flex)
@@ -248,9 +285,9 @@
                              (let ((wid (widget-width x)))
                                (set! taken (+ taken wid))
                                wid)))
-                      *widgets*))
+                      (slot-value window 'widgets)))
            ;;XXX: we should be using the width of the window, not the screen.
-           (remainder (- (xdisplaywidth *display* (xdefaultscreen *display*))
+           (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
                          taken))
            (flexunit (if (> flex 0) (/ remainder flex) 0))
            (left 10))
@@ -261,15 +298,15 @@
                (else (let ((wid (* flexunit (slot-value w 'flex))))
                        (widget-draw w left wid)
                        (set! left (+ left wid))))))
-       *widgets*
+       (slot-value window 'widgets)
        wids)))
 
   (define (update . params)
     (printf "*** Received dbus message: ~s~%" params)
     (let* ((name (first params))
-           (widget (find (lambda (w) (equal? (slot-value w 'name) name)) *widgets*)))
+           (widget (hash-table-ref *widgets* name)))
       (widget-update widget (cdr params))
-      (handleexpose)))
+      (handleexpose (slot-value (slot-value widget 'window) 'xwindow))))
 
 
   (let ((event (make-xevent))
@@ -287,7 +324,7 @@
             (return #t))
 
            ((= type EXPOSE)
-            (handleexpose)
+            (handleexpose (xexposeevent-window event))
             (display "expose\n"))
 
            ((= type BUTTONPRESS)
@@ -306,16 +343,11 @@
       (eventloop))
 
 
-    (let* ((font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*"))
-           ;; i find even these common fonts extend a pixel lower than their
-           ;; declared descent.  tsk tsk.
-           (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
-      (make-window (list height: whei))
-      (push! (make <text-widget>
-               'name "some-text"
-               'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-               'font font)
-             *widgets*))
+    (make-window '()
+      (make <text-widget>
+        'name "some-text"
+        'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        'font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*")))
 
     (define dbus-context
       (dbus:make-context service: 'jjfpanel.server
@@ -324,13 +356,17 @@
     (dbus:register-method dbus-context "update" update)
     (dbus:register-method dbus-context "quit" quit)
 
-    (xselectinput *display* *window*
-                  (bitwise-ior EXPOSUREMASK
-                               BUTTONPRESSMASK
-                               STRUCTURENOTIFYMASK))
-    (xmapwindow *display* *window*)
-    (xnextevent *display* event)
-    (handleexpose)
+    (for-each
+     (lambda (w)
+       (xselectinput *display*
+                     (slot-value w 'xwindow)
+                     (bitwise-ior EXPOSUREMASK
+                                  BUTTONPRESSMASK
+                                  STRUCTURENOTIFYMASK))
+       (xmapwindow *display* (slot-value w 'xwindow))
+       (xnextevent *display* event)
+       (handleexpose (slot-value w 'xwindow)))
+     *windows*)
     (xflush *display*)
     (call/cc start-eventloop))
   (xclosedisplay *display*))
