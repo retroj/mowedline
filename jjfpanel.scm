@@ -164,163 +164,167 @@
 (define (start-server)
   (set! *display* (xopendisplay #f))
   (assert *display*)
-  (let* ((screen (xdefaultscreen *display*))
-         (swid (xdisplaywidth *display* screen))
-         (shei (xdisplayheight *display* screen))
-         (font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*"))
-         ;; i find even these common fonts extend a pixel lower than their
-         ;; declared descent.  tsk tsk.
-         (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2))
-         (position 'top)
-         (window-top (case position
-                       ((bottom) (- shei whei))
-                       (else 0))))
-    (set! *screen* screen)
-    (set! *window* (xcreatesimplewindow
-                    *display*
-                    (xrootwindow *display* screen)
-                    0 window-top swid whei 0
-                    (xblackpixel *display* screen)
-                    (xwhitepixel *display* screen)))
-    (assert *window*)
-    (let ((attr (make-xsetwindowattributes)))
-      (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
-      (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
-      (set-xsetwindowattributes-override_redirect! attr 1)
-      (xchangewindowattributes *display* *window*
-                               (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                               attr))
+  (define (make-window whei)
+    (let* ((screen (xdefaultscreen *display*))
+           (swid (xdisplaywidth *display* screen))
+           (shei (xdisplayheight *display* screen))
+           (position 'top)
+           (window-top (case position
+                         ((bottom) (- shei whei))
+                         (else 0))))
+      (set! *screen* screen)
+      (set! *window* (xcreatesimplewindow
+                      *display*
+                      (xrootwindow *display* screen)
+                      0 window-top swid whei 0
+                      (xblackpixel *display* screen)
+                      (xwhitepixel *display* screen)))
+      (assert *window*)
+      (let ((attr (make-xsetwindowattributes)))
+        (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
+        (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
+        (set-xsetwindowattributes-override_redirect! attr 1)
+        (xchangewindowattributes *display* *window*
+                                 (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                                 attr))
 
-    ;; Window Properties
-    ;;
-    (xstorename *display* *window* "jjfpanel")
+      ;; Window Properties
+      ;;
+      (xstorename *display* *window* "jjfpanel")
 
-    (let ((p (make-xtextproperty))
-          (str (make-text-property (get-host-name))))
-      (xstringlisttotextproperty str 1 p)
-      (xsetwmclientmachine *display* *window* p))
+      (let ((p (make-xtextproperty))
+            (str (make-text-property (get-host-name))))
+        (xstringlisttotextproperty str 1 p)
+        (xsetwmclientmachine *display* *window* p))
 
-    (window-property-set *window* "_NET_WM_PID"
-                         (make-number-property (current-process-id)))
-    (window-property-set *window* "_NET_WM_WINDOW_TYPE"
-                         (make-atom-property "_NET_WM_TYPE_DOCK"))
-    (window-property-set *window* "_NET_WM_DESKTOP"
-                         (make-number-property #xffffffff))
-    (window-property-set *window* "_NET_WM_STATE"
-                         (make-atom-property "_NET_WM_STATE_BELOW"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_STICKY"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-    (window-property-append *window* "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
+      (window-property-set *window* "_NET_WM_PID"
+                           (make-number-property (current-process-id)))
+      (window-property-set *window* "_NET_WM_WINDOW_TYPE"
+                           (make-atom-property "_NET_WM_TYPE_DOCK"))
+      (window-property-set *window* "_NET_WM_DESKTOP"
+                           (make-number-property #xffffffff))
+      (window-property-set *window* "_NET_WM_STATE"
+                           (make-atom-property "_NET_WM_STATE_BELOW"))
+      (window-property-append *window* "_NET_WM_STATE"
+                              (make-atom-property "_NET_WM_STATE_STICKY"))
+      (window-property-append *window* "_NET_WM_STATE"
+                              (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
+      (window-property-append *window* "_NET_WM_STATE"
+                              (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
 
-    ;; Struts: left, right, top, bottom,
-    ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-    ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-    ;;
-    ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (window-property-set *window* "_NET_WM_STRUT_PARTIAL"
-                         (make-numbers-property
-                          (if (eq? position 'bottom)
-                              (list 0 0 0 whei 0 0 0 0 0 0 0 0)
-                              (list 0 0 whei 0 0 0 0 0 0 0 0 0))))
+      ;; Struts: left, right, top, bottom,
+      ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+      ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+      ;;
+      ;; so for a top panel, we set top, top_start_x, and top_end_x.
+      (window-property-set *window* "_NET_WM_STRUT_PARTIAL"
+                           (make-numbers-property
+                            (if (eq? position 'bottom)
+                                (list 0 0 0 whei 0 0 0 0 0 0 0 0)
+                                (list 0 0 whei 0 0 0 0 0 0 0 0 0))))
 
-    (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
-      (let-location ((atm unsigned-long d-atom))
-        (xsetwmprotocols *display* *window* (location atm) 1)))
+      (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
+        (let-location ((atm unsigned-long d-atom))
+          (xsetwmprotocols *display* *window* (location atm) 1)))))
 
 
-    ;; "Main"
-    ;;
-    (define (handleexpose)
-      (let* ((taken 0)
-             (flex 0)
-             (wids (map (lambda (x)
-                          (if* (slot-value x 'flex)
-                               (begin (set! flex (+ flex it))
-                                      #f)
-                               (let ((wid (widget-width x)))
-                                 (set! taken (+ taken wid))
-                                 wid)))
-                        *widgets*))
-             (remainder (- swid taken))
-             (flexunit (if (> flex 0) (/ remainder flex) 0))
-             (left 10))
-        (for-each
-         (lambda (w wid)
-           (cond (wid (widget-draw w left wid)
-                      (set! left (+ left wid)))
-                 (else (let ((wid (* flexunit (slot-value w 'flex))))
-                         (widget-draw w left wid)
-                         (set! left (+ left wid))))))
-         *widgets*
-         wids)))
+  ;; "Main"
+  ;;
+  (define (handleexpose)
+    (let* ((taken 0)
+           (flex 0)
+           (wids (map (lambda (x)
+                        (if* (slot-value x 'flex)
+                             (begin (set! flex (+ flex it))
+                                    #f)
+                             (let ((wid (widget-width x)))
+                               (set! taken (+ taken wid))
+                               wid)))
+                      *widgets*))
+           ;;XXX: we should be using the width of the window, not the screen.
+           (remainder (- (xdisplaywidth *display* (xdefaultscreen *display*))
+                         taken))
+           (flexunit (if (> flex 0) (/ remainder flex) 0))
+           (left 10))
+      (for-each
+       (lambda (w wid)
+         (cond (wid (widget-draw w left wid)
+                    (set! left (+ left wid)))
+               (else (let ((wid (* flexunit (slot-value w 'flex))))
+                       (widget-draw w left wid)
+                       (set! left (+ left wid))))))
+       *widgets*
+       wids)))
 
-    (define (update . params)
-      (printf "*** Received dbus message: ~s~%" params)
-      (let* ((name (first params))
-             (widget (find (lambda (w) (equal? (slot-value w 'name) name)) *widgets*)))
-        (widget-update widget (cdr params))
-        (handleexpose)))
-
-
-    (let ((event (make-xevent))
-          (return #f))
-      (define (quit . params)
-        (return #t))
-
-      (define (eventloop)
-        (when (> (xpending *display*) 0)
-          (xnextevent *display* event)
-          (let ((type (xevent-type event)))
-            (cond
-             ((= type CLIENTMESSAGE)
-              (display "closed!\n")
-              (return #t))
-
-             ((= type EXPOSE)
-              (handleexpose)
-              (display "expose\n"))
-
-             ((= type BUTTONPRESS)
-              (display "buttonpress\n")
-              (return #t))
-
-             (else
-              (display "event ")
-              (display (xevent-type event))
-              (display "\n")))))
-        (dbus:poll-for-message)
-        (eventloop))
-
-      (define (start-eventloop ret)
-        (set! return ret)
-        (eventloop))
+  (define (update . params)
+    (printf "*** Received dbus message: ~s~%" params)
+    (let* ((name (first params))
+           (widget (find (lambda (w) (equal? (slot-value w 'name) name)) *widgets*)))
+      (widget-update widget (cdr params))
+      (handleexpose)))
 
 
+  (let ((event (make-xevent))
+        (return #f))
+    (define (quit . params)
+      (return #t))
+
+    (define (eventloop)
+      (when (> (xpending *display*) 0)
+        (xnextevent *display* event)
+        (let ((type (xevent-type event)))
+          (cond
+           ((= type CLIENTMESSAGE)
+            (display "closed!\n")
+            (return #t))
+
+           ((= type EXPOSE)
+            (handleexpose)
+            (display "expose\n"))
+
+           ((= type BUTTONPRESS)
+            (display "buttonpress\n")
+            (return #t))
+
+           (else
+            (display "event ")
+            (display (xevent-type event))
+            (display "\n")))))
+      (dbus:poll-for-message)
+      (eventloop))
+
+    (define (start-eventloop ret)
+      (set! return ret)
+      (eventloop))
+
+
+    (let* ((font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*"))
+           ;; i find even these common fonts extend a pixel lower than their
+           ;; declared descent.  tsk tsk.
+           (whei (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
+      (make-window whei)
       (push! (make <text-widget>
                'name "some-text"
                'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
                'font font)
-             *widgets*)
+             *widgets*))
 
-      (define dbus-context
-        (dbus:make-context service: 'jjfpanel.server
-                           interface: 'jjfpanel.interface))
-      (dbus:enable-polling-thread! enable: #f)
-      (dbus:register-method dbus-context "update" update)
-      (dbus:register-method dbus-context "quit" quit)
+    (define dbus-context
+      (dbus:make-context service: 'jjfpanel.server
+                         interface: 'jjfpanel.interface))
+    (dbus:enable-polling-thread! enable: #f)
+    (dbus:register-method dbus-context "update" update)
+    (dbus:register-method dbus-context "quit" quit)
 
-      (xselectinput *display* *window*
-                    (bitwise-ior EXPOSUREMASK
-                                 BUTTONPRESSMASK
-                                 STRUCTURENOTIFYMASK))
-      (xmapwindow *display* *window*)
-      (xnextevent *display* event)
-      (handleexpose)
-      (xflush *display*)
-      (call/cc start-eventloop)))
+    (xselectinput *display* *window*
+                  (bitwise-ior EXPOSUREMASK
+                               BUTTONPRESSMASK
+                               STRUCTURENOTIFYMASK))
+    (xmapwindow *display* *window*)
+    (xnextevent *display* event)
+    (handleexpose)
+    (xflush *display*)
+    (call/cc start-eventloop))
   (xclosedisplay *display*))
 
 
