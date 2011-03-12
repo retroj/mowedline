@@ -184,7 +184,6 @@
 
 (define (get-font font-name)
   (let ((font (xloadqueryfont *display* font-name)))
-    (assert font)
     font))
 
 
@@ -343,11 +342,14 @@
       (eventloop))
 
 
-    (make-window '()
-      (make <text-widget>
-        'name "some-text"
-        'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-        'font (get-font "-misc-fixed-bold-*-*-*-*-100-*-*-*-*-*-*")))
+    (when (null? *windows*)
+      (make-window '()
+        (make <text-widget>
+          'name "default"
+          'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+          'font (or (get-font "9x15bold")
+                    (get-font "*")
+                    (error "no font")))))
 
     (define dbus-context
       (dbus:make-context service: 'jjfpanel.server
