@@ -52,7 +52,7 @@
     (xsetforeground *display* gc (xwhitepixel *display* *screen*))
     (xsetfunction *display* gc GXCOPY)
     (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
-    (xsetregion *display* gc (xcreateregion))
+    ;;(xsetregion *display* gc (xcreateregion))
     (set! (slot-value widget 'gc) gc)))
 
 (define-method (widget-draw (widget <text-widget>) x wid)
