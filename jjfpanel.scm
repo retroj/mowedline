@@ -372,10 +372,10 @@
   (xclosedisplay *display*))
 
 
+(unless (member "jjfpanel.server" (dbus:discover-services))
+  (process-fork start-server))
+
 (define dbus-context
   (dbus:make-context service: 'jjfpanel.server
                      interface: 'jjfpanel.interface))
-(dbus:enable-polling-thread! enable: #f)
 
-(unless (member "jjfpanel.server" (dbus:discover-services))
-  (process-fork start-server))
