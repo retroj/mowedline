@@ -5,6 +5,10 @@
      miscmacros
      posix)
 
+(define (start-server)
+  (process-execute "./jjfpanel-server"))
+
+
 ;;;
 ;;; Startup
 ;;;
@@ -22,8 +26,7 @@
 
 (if (member "jjfpanel.server" (dbus:discover-services))
     (printf "found server!~%")
-    (process-fork
-     (lambda () (process-execute "./jjfpanel-server"))))
+    (process-fork start-server))
 
 
 
