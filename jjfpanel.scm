@@ -386,3 +386,8 @@
   (dbus:make-context service: 'jjfpanel.server
                      interface: 'jjfpanel.interface))
 
+
+
+;; (put 'make-window 'scheme-indent-function 1)
+;; (put 'foreign-lambda* 'scheme-indent-function 2)
+;; (put 'let-location 'scheme-indent-function 1)
