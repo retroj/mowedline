@@ -15,6 +15,13 @@
 
 
 ;;;
+;;; Language
+;;;
+
+(define L list)
+
+
+;;;
 ;;; Globals
 ;;;
 
@@ -344,8 +351,8 @@
       (eventloop))
 
     (if* (find file-read-access?
-               (list (filepath:join-path (list "~" ".mowedline"))
-                     (filepath:join-path (list "~" ".config" "mowedline" "init.scm"))))
+               (L (filepath:join-path (L "~" ".mowedline"))
+                  (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))
          (let ((env (environment-copy (interaction-environment))))
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
