@@ -27,7 +27,6 @@
 (define *widgets* (make-hash-table test: equal?))
 
 
-
 ;;;
 ;;; Window
 ;;;
