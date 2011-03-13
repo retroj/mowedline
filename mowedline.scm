@@ -221,7 +221,7 @@
 
     ;; Window Properties
     ;;
-    (xstorename *display* xwindow "jjfpanel")
+    (xstorename *display* xwindow "mowedline")
 
     (let ((p (make-xtextproperty))
           (str (make-text-property (get-host-name))))
@@ -344,8 +344,8 @@
       (eventloop))
 
     (if* (find file-read-access?
-               (list (filepath:join-path (list "~" ".jjfpanel"))
-                     (filepath:join-path (list "~" ".config" "jjfpanel" "init.scm"))))
+               (list (filepath:join-path (list "~" ".mowedline"))
+                     (filepath:join-path (list "~" ".config" "mowedline" "init.scm"))))
          (let ((env (environment-copy (interaction-environment))))
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
@@ -357,8 +357,8 @@
           'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")))
 
     (define dbus-context
-      (dbus:make-context service: 'jjfpanel.server
-                         interface: 'jjfpanel.interface))
+      (dbus:make-context service: 'mowedline.server
+                         interface: 'mowedline.interface))
     (dbus:enable-polling-thread! enable: #f)
     (dbus:register-method dbus-context "update" update)
     (dbus:register-method dbus-context "quit" quit)
@@ -379,12 +379,12 @@
   (xclosedisplay *display*))
 
 
-(unless (member "jjfpanel.server" (dbus:discover-services))
+(unless (member "mowedline.server" (dbus:discover-services))
   (process-fork start-server))
 
 (define dbus-context
-  (dbus:make-context service: 'jjfpanel.server
-                     interface: 'jjfpanel.interface))
+  (dbus:make-context service: 'mowedline.server
+                     interface: 'mowedline.interface))
 
 
 
