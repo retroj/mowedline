@@ -189,87 +189,86 @@
     font))
 
 
+(define (make-window properties . widgets)
+  (let* ((properties (plist->alist properties))
+         (screen (xdefaultscreen *display*))
+         (swid (xdisplaywidth *display* screen))
+         (shei (xdisplayheight *display* screen))
+         (position (if* (assq position: properties)
+                        (cadr it)
+                        'top))
+         (whei (if* (assq height: properties)
+                    (cdr it)
+                    (fold max 1 (map widget-height widgets))))
+         (window-top (case position
+                       ((bottom) (- shei whei))
+                       (else 0)))
+         (xwindow (xcreatesimplewindow
+                   *display*
+                   (xrootwindow *display* screen)
+                   0 window-top swid whei 0
+                   (xblackpixel *display* screen)
+                   (xwhitepixel *display* screen))))
+    (assert xwindow)
+    (let ((attr (make-xsetwindowattributes)))
+      (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
+      (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
+      (set-xsetwindowattributes-override_redirect! attr 1)
+      (xchangewindowattributes *display* xwindow
+                               (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                               attr))
+
+    ;; Window Properties
+    ;;
+    (xstorename *display* xwindow "jjfpanel")
+
+    (let ((p (make-xtextproperty))
+          (str (make-text-property (get-host-name))))
+      (xstringlisttotextproperty str 1 p)
+      (xsetwmclientmachine *display* xwindow p))
+
+    (window-property-set xwindow "_NET_WM_PID"
+                         (make-number-property (current-process-id)))
+    (window-property-set xwindow "_NET_WM_WINDOW_TYPE"
+                         (make-atom-property "_NET_WM_TYPE_DOCK"))
+    (window-property-set xwindow "_NET_WM_DESKTOP"
+                         (make-number-property #xffffffff))
+    (window-property-set xwindow "_NET_WM_STATE"
+                         (make-atom-property "_NET_WM_STATE_BELOW"))
+    (window-property-append xwindow "_NET_WM_STATE"
+                            (make-atom-property "_NET_WM_STATE_STICKY"))
+    (window-property-append xwindow "_NET_WM_STATE"
+                            (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
+    (window-property-append xwindow "_NET_WM_STATE"
+                            (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
+
+    ;; Struts: left, right, top, bottom,
+    ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+    ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+    ;;
+    ;; so for a top panel, we set top, top_start_x, and top_end_x.
+    (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
+                         (make-numbers-property
+                          (if (eq? position 'bottom)
+                              (list 0 0 0 whei 0 0 0 0 0 0 0 0)
+                              (list 0 0 whei 0 0 0 0 0 0 0 0 0))))
+
+    (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
+      (let-location ((atm unsigned-long d-atom))
+        (xsetwmprotocols *display* xwindow (location atm) 1)))
+
+
+    (let ((window (make <window>
+                    'xwindow xwindow
+                    'screen screen
+                    'widgets widgets)))
+      (for-each (lambda (widget) (widget-set-window! widget window)) widgets)
+      (push! window *windows*)
+      window)))
+
 (define (start-server)
   (set! *display* (xopendisplay #f))
   (assert *display*)
-
-  (define (make-window properties . widgets)
-    (let* ((properties (plist->alist properties))
-           (screen (xdefaultscreen *display*))
-           (swid (xdisplaywidth *display* screen))
-           (shei (xdisplayheight *display* screen))
-           (position (if* (assq position: properties)
-                          (cadr it)
-                          'top))
-           (whei (if* (assq height: properties)
-                      (cdr it)
-                      (fold max 1 (map widget-height widgets))))
-           (window-top (case position
-                         ((bottom) (- shei whei))
-                         (else 0)))
-           (xwindow (xcreatesimplewindow
-                     *display*
-                     (xrootwindow *display* screen)
-                     0 window-top swid whei 0
-                     (xblackpixel *display* screen)
-                     (xwhitepixel *display* screen))))
-      (assert xwindow)
-      (let ((attr (make-xsetwindowattributes)))
-        (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
-        (set-xsetwindowattributes-border_pixel! attr (xblackpixel *display* screen))
-        (set-xsetwindowattributes-override_redirect! attr 1)
-        (xchangewindowattributes *display* xwindow
-                                 (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                                 attr))
-
-      ;; Window Properties
-      ;;
-      (xstorename *display* xwindow "jjfpanel")
-
-      (let ((p (make-xtextproperty))
-            (str (make-text-property (get-host-name))))
-        (xstringlisttotextproperty str 1 p)
-        (xsetwmclientmachine *display* xwindow p))
-
-      (window-property-set xwindow "_NET_WM_PID"
-                           (make-number-property (current-process-id)))
-      (window-property-set xwindow "_NET_WM_WINDOW_TYPE"
-                           (make-atom-property "_NET_WM_TYPE_DOCK"))
-      (window-property-set xwindow "_NET_WM_DESKTOP"
-                           (make-number-property #xffffffff))
-      (window-property-set xwindow "_NET_WM_STATE"
-                           (make-atom-property "_NET_WM_STATE_BELOW"))
-      (window-property-append xwindow "_NET_WM_STATE"
-                              (make-atom-property "_NET_WM_STATE_STICKY"))
-      (window-property-append xwindow "_NET_WM_STATE"
-                              (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-      (window-property-append xwindow "_NET_WM_STATE"
-                              (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
-
-      ;; Struts: left, right, top, bottom,
-      ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-      ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-      ;;
-      ;; so for a top panel, we set top, top_start_x, and top_end_x.
-      (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
-                           (make-numbers-property
-                            (if (eq? position 'bottom)
-                                (list 0 0 0 whei 0 0 0 0 0 0 0 0)
-                                (list 0 0 whei 0 0 0 0 0 0 0 0 0))))
-
-      (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
-        (let-location ((atm unsigned-long d-atom))
-          (xsetwmprotocols *display* xwindow (location atm) 1)))
-
-
-      (let ((window (make <window>
-                      'xwindow xwindow
-                      'screen screen
-                      'widgets widgets)))
-        (for-each (lambda (widget) (widget-set-window! widget window)) widgets)
-        (push! window *windows*)
-        window)))
-
 
   ;; "Main"
   ;;
