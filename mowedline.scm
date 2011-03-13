@@ -48,7 +48,6 @@
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
-
   (let* ((screen (slot-value window 'screen))
          (shei (xdisplayheight *display* screen))
          (position (slot-value window 'position))
