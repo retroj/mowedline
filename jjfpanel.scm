@@ -5,6 +5,8 @@
      srfi-69 ;; hash tables
      coops
      dbus
+     environments
+     filepath
      list-utils
      lolevel
      miscmacros
@@ -342,6 +344,12 @@
       (set! return ret)
       (eventloop))
 
+    (if* (find file-read-access?
+               (list (filepath:join-path (list "~" ".jjfpanel"))
+                     (filepath:join-path (list "~" ".config" "jjfpanel" "init.scm"))))
+         (let ((env (environment-copy (interaction-environment))))
+           (environment-extend! env 'make make)
+           (load it (lambda (form) (eval form env)))))
 
     (when (null? *windows*)
       (make-window '()
