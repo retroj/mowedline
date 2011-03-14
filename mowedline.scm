@@ -403,6 +403,13 @@
   (xclosedisplay *display*))
 
 
+(define (start-client commands)
+  (define dbus-context
+    (dbus:make-context service: 'mowedline.server
+                       interface: 'mowedline.interface))
+  )
+
+
 (define server-options
   '(("text-widget" name)
     ("bg" color)
@@ -445,22 +452,36 @@
                              (cons command (hash-table-ref/default out optype '())))
             (parse-command-line (list-tail input narg) (- count narg) out))))))
 
-(let ((commands (parse-command-line (command-line-arguments)
-                                    (length (command-line-arguments))
-                                    (make-hash-table))))
-  (pp (hash-table-ref/default commands 'server-options '()))
-  (pp (hash-table-ref/default commands 'client-options '()))
-  (pp (hash-table-ref/default commands 'special-options '())))
+(let ((commands (parse-command-line
+                 (command-line-arguments)
+                 (length (command-line-arguments))
+                 (make-hash-table))))
+  (define server-commands
+    (reverse! (hash-table-ref/default commands 'server-options '())))
+  (define client-commands
+    (reverse! (hash-table-ref/default commands 'client-options '())))
+  (define special-commands
+    (reverse! (hash-table-ref/default commands 'special-options '())))
 
+  (cond
+   ((not (null? special-commands))
+    ;; run the command and exit
+    )
+   ((member "mowedline.server" (dbus:discover-services))
+    (when (not (null? server-commands))
+        ;; warn about server commands that will not be processed
+        )
+    ;; process client commands
+    )
+   (else
+    (when (not (null? server-commands))
+      ;; put server-commands somewhere where start-server can see them
+      )
+    (process-fork start-server)
+    ;; wait for the server to be ready?
 
-(unless (member "mowedline.server" (dbus:discover-services))
-  (process-fork start-server))
-
-(define dbus-context
-  (dbus:make-context service: 'mowedline.server
-                     interface: 'mowedline.interface))
-
-
+    ;; process client commands
+    )))
 
 ;; (put 'make-window 'scheme-indent-function 1)
 ;; (put 'foreign-lambda* 'scheme-indent-function 2)
