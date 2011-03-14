@@ -403,6 +403,63 @@
   (xclosedisplay *display*))
 
 
+(define server-options
+  '(("text-widget" name)
+    ("bg" color)
+    ("fg" color)
+    ("screen" screen)
+    ("position" position)))
+
+(define client-options
+  '(("quit")
+    ("version")
+    ("help")
+    ("read" widget source)
+    ("u" widget value)))
+
+(define (find-server-option op)
+  (assoc op server-options))
+
+(define (find-client-option op)
+  (assoc op client-options))
+
+(let ((parsing-client-options #f))
+  (define (match input)
+    (cond
+     ((null? input) (list))
+     (else
+      (let* ((opsym (first input))
+             (op (string-trim opsym #\-)))
+        (if parsing-client-options
+            (let ((def (find-client-option op)))
+              (unless def
+                (when (find-server-option op)
+                  (error (sprintf "expected client option, found server option ~S~%" opsym)))
+                (error (sprintf "unexpected symbol ~S~%" opsym)))
+              (let ((narg (- (length def) 1))
+                    (nin (length (rest input))))
+                (when (< nin narg)
+                  (error (sprintf "~A requires ~A arguments, but only ~A were given"
+                                  op narg nin)))
+                (cons (cons (car def) (take (rest input) narg))
+                      (match (list-tail input (+ narg 1))))))
+            (let ((def (find-server-option op)))
+              (if def
+                  (let ((narg (- (length def) 1))
+                        (nin (length (rest input))))
+                    (when (< nin narg)
+                      (error (sprintf "~A requires ~A arguments, but only ~A were given"
+                                      op narg nin)))
+                    (cons (cons (car def) (take (rest input) narg))
+                          (match (list-tail input (+ narg 1)))))
+                  (cond
+                   ((find-client-option op)
+                    (set! parsing-client-options #t)
+                    (match input))
+                   (else (error (sprintf "unexpected symbol ~S~%" opsym)))))))))))
+  (pp (match (command-line-arguments))))
+
+
 (unless (member "mowedline.server" (dbus:discover-services))
   (process-fork start-server))
 
