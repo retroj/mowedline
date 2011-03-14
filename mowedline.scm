@@ -412,52 +412,45 @@
 
 (define client-options
   '(("quit")
-    ("version")
-    ("help")
     ("read" widget source)
-    ("u" widget value)))
+    ("update" widget value)))
 
-(define (find-server-option op)
-  (assoc op server-options))
-
-(define (find-client-option op)
-  (assoc op client-options))
-
-
-(define command-set-null '(()))
+(define special-options
+  '(("help")
+    ("version")))
 
 (define (mkcmd op args)
   (cons op args))
 
-(define (parse-command-line input count)
-  (cond
-   ((null? input) command-set-null)
-   (else
-    (let* ((opsym (first input))
-           (op (string-trim opsym #\-))
-           (input (rest input))
-           (count (- count 1)))
-      (if* (find-server-option op)
-           (let ((narg (- (length it) 1)))
-             (when (< count narg)
-               (error (sprintf "~A requires ~A arguments, but only ~A were given"
-                               op narg count)))
-             (let ((more-commands (parse-command-line (list-tail input narg) (- count narg))))
-               (cons (cons (mkcmd op (take input narg))
-                           (car more-commands))
-                     (cdr more-commands))))
-           (if* (find-client-option op)
-                (let ((narg (- (length it) 1)))
-                  (when (< count narg)
-                    (error (sprintf "~A requires ~A arguments, but only ~A were given"
-                                    op narg count)))
-                  (let ((more-commands (parse-command-line (list-tail input narg) (- count narg))))
-                    (cons (car more-commands)
-                          (cons (mkcmd op (take input narg))
-                                (cdr more-commands)))))
-                (error (sprintf "unexpected symbol ~S~%" opsym))))))))
+(define (parse-command-line input count out)
+  (if (null? input)
+      out
+      (let* ((opsym (first input))
+             (input (rest input))
+             (count (- count 1))
+             (op (string-trim opsym #\-))
+             (def #f)
+             (optype (find (lambda (optype)
+                             (set! def (assoc op (eval optype)))
+                             def)
+                           '(server-options client-options special-options))))
+        (unless def
+          (error (sprintf "unexpected symbol ~S~%" opsym)))
+        (let ((narg (- (length def) 1)))
+          (when (< count narg)
+            (error (sprintf "~A requires ~A arguments, but only ~A were given"
+                            op narg count)))
+          (let ((command (mkcmd op (take input narg))))
+            (hash-table-set! out optype
+                             (cons command (hash-table-ref/default out optype '())))
+            (parse-command-line (list-tail input narg) (- count narg) out))))))
 
-(pp (parse-command-line (command-line-arguments) (length (command-line-arguments))))
+(let ((commands (parse-command-line (command-line-arguments)
+                                    (length (command-line-arguments))
+                                    (make-hash-table))))
+  (pp (hash-table-ref/default commands 'server-options '()))
+  (pp (hash-table-ref/default commands 'client-options '()))
+  (pp (hash-table-ref/default commands 'special-options '())))
 
 
 (unless (member "mowedline.server" (dbus:discover-services))
