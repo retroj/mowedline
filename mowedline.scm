@@ -35,6 +35,7 @@
 ;;;
 
 (define L list)
+(define rest cdr)
 
 
 ;;;
