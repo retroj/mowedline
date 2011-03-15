@@ -408,10 +408,14 @@
 
 
 (define (start-client commands)
-  (define dbus-context
-    (dbus:make-context service: 'mowedline.server
-                       interface: 'mowedline.interface))
-  )
+  (for-each
+   (lambda (cmd)
+     (let* ((def (assoc (car cmd) client-options
+                        (lambda (a b) (equal? a (car b))))))
+       (eval
+        `(let ,(zip (command-args def) (cdr cmd))
+           ,@(command-body def)))))
+   commands))
 
 
 (define server-options
