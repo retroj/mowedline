@@ -384,12 +384,12 @@
              'name "default"
              'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))))
 
-    (define dbus-context
-      (dbus:make-context service: 'mowedline.server
-                         interface: 'mowedline.interface))
-    (dbus:enable-polling-thread! enable: #f)
-    (dbus:register-method dbus-context "update" update)
-    (dbus:register-method dbus-context "quit" quit)
+    (let ((dbus-context
+           (dbus:make-context service: 'mowedline.server
+                              interface: 'mowedline.interface)))
+      (dbus:enable-polling-thread! enable: #f)
+      (dbus:register-method dbus-context "update" update)
+      (dbus:register-method dbus-context "quit" quit))
 
     (for-each
      (lambda (w)
