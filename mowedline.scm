@@ -426,6 +426,28 @@
   '(("help")
     ("version")))
 
+(define (make-commands-stucture)
+  (vector '() '() '()))
+
+(define (optype-internal-index optype)
+  (case optype
+    ((server-options) 0)
+    ((client-options) 1)
+    ((special-options) 2)))
+
+(define (add-command! commands optype command)
+  (let ((k (optype-internal-index optype)))
+    (vector-set! commands k (cons command (vector-ref commands k)))))
+
+(define (get-server-commands commands)
+  (reverse (vector-ref commands 0)))
+
+(define (get-client-commands commands)
+  (reverse (vector-ref commands 1)))
+
+(define (get-special-commands commands)
+  (reverse (vector-ref commands 2)))
+
 (define (mkcmd op args)
   (cons op args))
 
@@ -448,21 +470,16 @@
             (error (sprintf "~A requires ~A arguments, but only ~A were given"
                             op narg count)))
           (let ((command (mkcmd op (take input narg))))
-            (hash-table-set! out optype
-                             (cons command (hash-table-ref/default out optype '())))
+            (add-command! out optype command)
             (parse-command-line (list-tail input narg) (- count narg) out))))))
 
-(let ((commands (parse-command-line
-                 (command-line-arguments)
-                 (length (command-line-arguments))
-                 (make-hash-table))))
-  (define server-commands
-    (reverse! (hash-table-ref/default commands 'server-options '())))
-  (define client-commands
-    (reverse! (hash-table-ref/default commands 'client-options '())))
-  (define special-commands
-    (reverse! (hash-table-ref/default commands 'special-options '())))
-
+(let* ((commands (parse-command-line
+                  (command-line-arguments)
+                  (length (command-line-arguments))
+                  (make-commands-stucture)))
+       (server-commands (get-server-commands commands))
+       (client-commands (get-client-commands commands))
+       (special-commands (get-special-commands commands)))
   (cond
    ((not (null? special-commands))
     ;; run the command and exit
@@ -470,18 +487,18 @@
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
         ;; warn about server commands that will not be processed
-        )
-    ;; process client commands
-    )
+      (printf "Warning: the following commands will be ignored because the server is already running~%")
+      (for-each
+       (lambda (x) (printf "  ~S~%" x))
+       server-commands))
+    (start-client client-commands))
    (else
     (when (not (null? server-commands))
       ;; put server-commands somewhere where start-server can see them
       )
     (process-fork start-server)
     ;; wait for the server to be ready?
-
-    ;; process client commands
-    )))
+    (start-client client-commands))))
 
 ;; (put 'make-window 'scheme-indent-function 1)
 ;; (put 'foreign-lambda* 'scheme-indent-function 2)
