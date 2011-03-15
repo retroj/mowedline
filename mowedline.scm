@@ -427,9 +427,53 @@
     (("update" widget value))))
 
 (define special-options
-  '((("help"))
+  '((("help")
+     "displays this help"
+     (let ((longest
+            (fold max 0
+                  (map
+                   (lambda (def)
+                     (apply + 2 (string-length (command-name def))
+                            (* 3 (length (command-args def)))
+                            (map (compose string-length symbol->string)
+                                 (command-args def))))
+                   (append server-options client-options special-options))))
+           (docspc 4))
+       (define (help-section option-group)
+         (for-each
+          (lambda (def)
+            (let ((col1 (apply string-append " -" (command-name def)
+                               (map (lambda (a)
+                                      (string-append " <" (symbol->string a) ">"))
+                                    (command-args def)))))
+              (display col1)
+              (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
+              (printf "~A~%" (command-doc def))))
+          option-group))
+       (printf "mowedline version ~A, by John J. Foerch~%" version)
+       (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
+       (help-section special-options)
+       (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
+       (help-section server-options)
+       (printf "~%CLIENT OPTIONS~%~%")
+       (help-section client-options)
+       (newline)))
     (("version")
+     "prints the version"
      (printf "mowedline version ~A, by John J. Foerch~%" version))))
+
+(define (command-name command-def)
+  (caar command-def))
+
+(define (command-args command-def)
+  (cdar command-def))
+
+(define (command-doc command-def)
+  (string-join (take-while string? (cdr command-def)) "\n"))
+
+(define (command-body command-def)
+  (drop-while string? (cdr command-def)))
+
 
 (define (make-commands-stucture)
   (vector '() '() '()))
@@ -488,17 +532,20 @@
        (special-commands (get-special-commands commands)))
   (cond
    ((not (null? special-commands))
-    (for-each
-     (lambda (cmd)
-       (let ((def (assoc (car cmd) special-options
-                          (lambda (a b) (equal? a (car b))))))
-         (eval
-          `(let ,(zip (cdar def) (cdr cmd))
-             ,@(cdr def)))))
-     special-commands))
+    (let* ((cmd (first special-commands))
+           (def (assoc (car cmd) special-options
+                       (lambda (a b) (equal? a (car b))))))
+      (eval
+       `(let ,(zip (command-args def) (cdr cmd))
+          ,@(command-body def))))
+    (unless (null? (rest special-commands))
+      (printf "~%Warning: the following commands were ignored:~%")
+      (for-each
+       (lambda (x) (printf "  ~S~%" x))
+       (rest special-commands))))
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
-      (printf "Warning: the following commands were ignored because the server is already running~%")
+      (printf "Warning: the following commands were ignored because the server is already running:~%")
       (for-each
        (lambda (x) (printf "  ~S~%" x))
        server-commands))
