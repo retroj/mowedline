@@ -451,32 +451,33 @@
 (define (mkcmd op args)
   (cons op args))
 
-(define (parse-command-line input count out)
-  (if (null? input)
-      out
-      (let* ((opsym (first input))
-             (input (rest input))
-             (count (- count 1))
-             (op (string-trim opsym #\-))
-             (def #f)
-             (optype (find (lambda (optype)
-                             (set! def (assoc op (eval optype)))
-                             def)
-                           '(server-options client-options special-options))))
-        (unless def
-          (error (sprintf "unexpected symbol ~S~%" opsym)))
-        (let ((narg (- (length def) 1)))
-          (when (< count narg)
-            (error (sprintf "~A requires ~A arguments, but only ~A were given"
-                            op narg count)))
-          (let ((command (mkcmd op (take input narg))))
-            (add-command! out optype command)
-            (parse-command-line (list-tail input narg) (- count narg) out))))))
+(define parse-command-line
+  (case-lambda
+   ((input) (parse-command-line input (length input) (make-commands-stucture)))
+   ((input count) (parse-command-line input count (make-commands-stucture)))
+   ((input count out)
+    (if (null? input)
+        out
+        (let* ((opsym (first input))
+               (input (rest input))
+               (count (- count 1))
+               (op (string-trim opsym #\-))
+               (def #f)
+               (optype (find (lambda (optype)
+                               (set! def (assoc op (eval optype)))
+                               def)
+                             '(server-options client-options special-options))))
+          (unless def
+            (error (sprintf "unexpected symbol ~S~%" opsym)))
+          (let ((narg (- (length def) 1)))
+            (when (< count narg)
+              (error (sprintf "~A requires ~A arguments, but only ~A were given"
+                              op narg count)))
+            (let ((command (mkcmd op (take input narg))))
+              (add-command! out optype command)
+              (parse-command-line (list-tail input narg) (- count narg) out))))))))
 
-(let* ((commands (parse-command-line
-                  (command-line-arguments)
-                  (length (command-line-arguments))
-                  (make-commands-stucture)))
+(let* ((commands (parse-command-line (command-line-arguments)))
        (server-commands (get-server-commands commands))
        (client-commands (get-client-commands commands))
        (special-commands (get-special-commands commands)))
@@ -486,7 +487,6 @@
     )
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
-        ;; warn about server commands that will not be processed
       (printf "Warning: the following commands were ignored because the server is already running~%")
       (for-each
        (lambda (x) (printf "  ~S~%" x))
