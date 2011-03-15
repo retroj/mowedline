@@ -487,7 +487,7 @@
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
         ;; warn about server commands that will not be processed
-      (printf "Warning: the following commands will be ignored because the server is already running~%")
+      (printf "Warning: the following commands were ignored because the server is already running~%")
       (for-each
        (lambda (x) (printf "  ~S~%" x))
        server-commands))
