@@ -547,7 +547,7 @@
        (append! (rest special-commands) server-commands client-commands))))
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
-      (printf "Warning: the following commands were ignored because the server is already running:~%")
+      (printf "Warning: the following commands were ignored because the daemon is already running:~%")
       (for-each
        (lambda (x) (printf "  ~S~%" x))
        server-commands))
