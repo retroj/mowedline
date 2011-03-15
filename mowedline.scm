@@ -426,7 +426,13 @@
     (("position" position))))
 
 (define client-options
-  '((("quit"))
+  '((("quit")
+     "quit the program"
+     (import dbus)
+     (let ((dbus-context
+            (dbus:make-context service: 'mowedline.server
+                               interface: 'mowedline.interface)))
+       (dbus:send dbus-context "quit")))
     (("read" widget source))
     (("update" widget value))))
 
