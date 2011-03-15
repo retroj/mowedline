@@ -17,7 +17,8 @@
 
 (import chicken scheme extras foreign)
 
-(use srfi-4 ;; homogeneous numeric vectors
+(use srfi-1
+     srfi-4 ;; homogeneous numeric vectors
      srfi-69 ;; hash tables
      coops
      dbus
@@ -28,6 +29,9 @@
      miscmacros
      posix
      xlib)
+
+
+(define version "0.0")
 
 
 ;;;
@@ -411,20 +415,21 @@
 
 
 (define server-options
-  '(("text-widget" name)
-    ("bg" color)
-    ("fg" color)
-    ("screen" screen)
-    ("position" position)))
+  '((("text-widget" name))
+    (("bg" color))
+    (("fg" color))
+    (("screen" screen))
+    (("position" position))))
 
 (define client-options
-  '(("quit")
-    ("read" widget source)
-    ("update" widget value)))
+  '((("quit"))
+    (("read" widget source))
+    (("update" widget value))))
 
 (define special-options
-  '(("help")
-    ("version")))
+  '((("help"))
+    (("version")
+     (printf "mowedline version ~A, by John J. Foerch~%" version))))
 
 (define (make-commands-stucture)
   (vector '() '() '()))
@@ -453,8 +458,6 @@
 
 (define parse-command-line
   (case-lambda
-   ((input) (parse-command-line input (length input) (make-commands-stucture)))
-   ((input count) (parse-command-line input count (make-commands-stucture)))
    ((input count out)
     (if (null? input)
         out
@@ -464,18 +467,20 @@
                (op (string-trim opsym #\-))
                (def #f)
                (optype (find (lambda (optype)
-                               (set! def (assoc op (eval optype)))
+                               (set! def (assoc op (eval optype)
+                                                (lambda (a b) (equal? a (car b)))))
                                def)
                              '(server-options client-options special-options))))
           (unless def
             (error (sprintf "unexpected symbol ~S~%" opsym)))
-          (let ((narg (- (length def) 1)))
+          (let ((narg (- (length (car def)) 1)))
             (when (< count narg)
               (error (sprintf "~A requires ~A arguments, but only ~A were given"
                               op narg count)))
             (let ((command (mkcmd op (take input narg))))
               (add-command! out optype command)
-              (parse-command-line (list-tail input narg) (- count narg) out))))))))
+              (parse-command-line (list-tail input narg) (- count narg) out))))))
+   ((input . args) (parse-command-line input (length input) (make-commands-stucture)))))
 
 (let* ((commands (parse-command-line (command-line-arguments)))
        (server-commands (get-server-commands commands))
@@ -483,8 +488,14 @@
        (special-commands (get-special-commands commands)))
   (cond
    ((not (null? special-commands))
-    ;; run the command and exit
-    )
+    (for-each
+     (lambda (cmd)
+       (let ((def (assoc (car cmd) special-options
+                          (lambda (a b) (equal? a (car b))))))
+         (eval
+          `(let ,(zip (cdar def) (cdr cmd))
+             ,@(cdr def)))))
+     special-commands))
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
       (printf "Warning: the following commands were ignored because the server is already running~%")
