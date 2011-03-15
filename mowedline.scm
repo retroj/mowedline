@@ -538,11 +538,13 @@
       (eval
        `(let ,(zip (command-args def) (cdr cmd))
           ,@(command-body def))))
-    (unless (null? (rest special-commands))
+    (unless (and (null? (rest special-commands))
+                 (null? server-commands)
+                 (null? client-commands))
       (printf "~%Warning: the following commands were ignored:~%")
       (for-each
        (lambda (x) (printf "  ~S~%" x))
-       (rest special-commands))))
+       (append! (rest special-commands) server-commands client-commands))))
    ((member "mowedline.server" (dbus:discover-services))
     (when (not (null? server-commands))
       (printf "Warning: the following commands were ignored because the server is already running:~%")
