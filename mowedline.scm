@@ -421,8 +421,10 @@
             (dbus:make-context service: 'mowedline.server
                                interface: 'mowedline.interface)))
        (dbus:call dbus-context "quit")))
-    (("read" widget source))
-    (("update" widget value))))
+    (("read" widget source)
+     "updates widget by reading lines from source")
+    (("update" widget value)
+     "updates widget with value")))
 
 (define special-options
   '((("help")
@@ -436,7 +438,7 @@
                             (map (compose string-length symbol->string)
                                  (command-args def))))
                    (append server-options client-options special-options))))
-           (docspc 4))
+           (docspc 3))
        (define (help-section option-group)
          (for-each
           (lambda (def)
