@@ -338,9 +338,9 @@
 
 
   (let ((event (make-xevent))
-        (return #f))
+        (done #f))
     (define (quit . params)
-      (return #t))
+      (set! done #t))
 
     (define (eventloop)
       (when (> (xpending *display*) 0)
@@ -349,7 +349,7 @@
           (cond
            ((= type CLIENTMESSAGE)
             (display "closed!\n")
-            (return #t))
+            (set! done #t))
 
            ((= type EXPOSE)
             (handleexpose (xexposeevent-window event))
@@ -357,18 +357,15 @@
 
            ((= type BUTTONPRESS)
             (display "buttonpress\n")
-            (return #t))
+            (set! done #t))
 
            (else
             (display "event ")
             (display (xevent-type event))
             (display "\n")))))
       (dbus:poll-for-message)
-      (eventloop))
-
-    (define (start-eventloop ret)
-      (set! return ret)
-      (eventloop))
+      (unless done
+        (eventloop)))
 
     (if* (find file-read-access?
                (L (filepath:join-path (L "~" ".mowedline"))
@@ -403,7 +400,7 @@
        (handleexpose (slot-value w 'xwindow)))
      *windows*)
     (xflush *display*)
-    (call/cc start-eventloop))
+    (eventloop))
   (xclosedisplay *display*))
 
 
@@ -432,7 +429,7 @@
      (let ((dbus-context
             (dbus:make-context service: 'mowedline.server
                                interface: 'mowedline.interface)))
-       (dbus:send dbus-context "quit")))
+       (dbus:call dbus-context "quit")))
     (("read" widget source))
     (("update" widget value))))
 
