@@ -294,51 +294,50 @@
     font))
 
 
-(define (start-server)
+(define (handleexpose xwindow)
+  (let* ((window (find (lambda (window)
+                         (equal? (slot-value window 'xwindow) xwindow))
+                       *windows*))
+         (taken 0)
+         (flex 0)
+         (wids (map (lambda (x)
+                      (if* (slot-value x 'flex)
+                           (begin (set! flex (+ flex it))
+                                  #f)
+                           (let ((wid (widget-width x)))
+                             (set! taken (+ taken wid))
+                             wid)))
+                    (slot-value window 'widgets)))
+         ;;XXX: we should be using the width of the window, not the screen.
+         (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
+                       taken))
+         (flexunit (if (> flex 0) (/ remainder flex) 0))
+         (left 10))
+    (for-each
+     (lambda (w wid)
+       (cond (wid (widget-draw w left wid)
+                  (set! left (+ left wid)))
+             (else (let ((wid (* flexunit (slot-value w 'flex))))
+                     (widget-draw w left wid)
+                     (set! left (+ left wid))))))
+     (slot-value window 'widgets)
+     wids)))
+
+
+(define (update . params)
+  (let* ((name (first params))
+         (widget (hash-table-ref *widgets* name)))
+    (widget-update widget (cdr params))
+    (handleexpose (slot-value (slot-value widget 'window) 'xwindow))))
+
+
+(define (start-server commands)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
-  ;; "Main"
-  ;;
-  (define (handleexpose xwindow)
-    (let* ((window (find (lambda (window)
-                           (equal? (slot-value window 'xwindow) xwindow))
-                         *windows*))
-           (taken 0)
-           (flex 0)
-           (wids (map (lambda (x)
-                        (if* (slot-value x 'flex)
-                             (begin (set! flex (+ flex it))
-                                    #f)
-                             (let ((wid (widget-width x)))
-                               (set! taken (+ taken wid))
-                               wid)))
-                      (slot-value window 'widgets)))
-           ;;XXX: we should be using the width of the window, not the screen.
-           (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
-                         taken))
-           (flexunit (if (> flex 0) (/ remainder flex) 0))
-           (left 10))
-      (for-each
-       (lambda (w wid)
-         (cond (wid (widget-draw w left wid)
-                    (set! left (+ left wid)))
-               (else (let ((wid (* flexunit (slot-value w 'flex))))
-                       (widget-draw w left wid)
-                       (set! left (+ left wid))))))
-       (slot-value window 'widgets)
-       wids)))
-
-  (define (update . params)
-    (printf "*** Received dbus message: ~s~%" params)
-    (let* ((name (first params))
-           (widget (hash-table-ref *widgets* name)))
-      (widget-update widget (cdr params))
-      (handleexpose (slot-value (slot-value widget 'window) 'xwindow))))
-
-
   (let ((event (make-xevent))
         (done #f))
+
     (define (quit . params)
       (set! done #t))
 
@@ -348,21 +347,11 @@
         (let ((type (xevent-type event)))
           (cond
            ((= type CLIENTMESSAGE)
-            (display "closed!\n")
             (set! done #t))
-
            ((= type EXPOSE)
-            (handleexpose (xexposeevent-window event))
-            (display "expose\n"))
-
+            (handleexpose (xexposeevent-window event)))
            ((= type BUTTONPRESS)
-            (display "buttonpress\n")
-            (set! done #t))
-
-           (else
-            (display "event ")
-            (display (xevent-type event))
-            (display "\n")))))
+            (set! done #t)))))
       (dbus:poll-for-message)
       (unless done
         (eventloop)))
@@ -373,6 +362,8 @@
          (let ((env (environment-copy (interaction-environment))))
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
+
+    ;; now command line options get processed, somehow
 
     (when (null? *windows*)
       (make <window>
@@ -560,10 +551,7 @@
        server-commands))
     (start-client client-commands))
    (else
-    (when (not (null? server-commands))
-      ;; put server-commands somewhere where start-server can see them
-      )
-    (process-fork start-server)
+    (process-fork (lambda () (start-server server-commands)))
     ;; wait for the server to be ready?
     (start-client client-commands))))
 
