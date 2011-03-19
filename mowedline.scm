@@ -406,6 +406,13 @@
    commands))
 
 
+(define (client-quit)
+  (let ((dbus-context
+         (dbus:make-context service: 'mowedline.server
+                            interface: 'mowedline.interface)))
+    (dbus:call dbus-context "quit")))
+
+
 (define server-options
   '((("text-widget" name))
     (("bg" color))
@@ -416,11 +423,7 @@
 (define client-options
   '((("quit")
      "quit the program"
-     (import dbus)
-     (let ((dbus-context
-            (dbus:make-context service: 'mowedline.server
-                               interface: 'mowedline.interface)))
-       (dbus:call dbus-context "quit")))
+     (client-quit))
     (("read" widget source)
      "updates widget by reading lines from source")
     (("update" widget value)
