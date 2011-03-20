@@ -59,6 +59,8 @@
 ;;; Window
 ;;;
 
+(define-generic (window-expose window))
+
 (define-class <window> ()
   ((screen initform: (xdefaultscreen *display*))
    (position initform: 'top)
@@ -139,6 +141,32 @@
         (xsetwmprotocols *display* xwindow (location atm) 1)))
 
     (push! window *windows*)))
+
+(define-method (window-expose (window <window>))
+  (let* ((taken 0)
+         (flex 0)
+         (wids (map (lambda (x)
+                      (if* (slot-value x 'flex)
+                           (begin (set! flex (+ flex it))
+                                  #f)
+                           (let ((wid (widget-width x)))
+                             (set! taken (+ taken wid))
+                             wid)))
+                    (slot-value window 'widgets)))
+         ;;XXX: we should be using the width of the window, not the screen.
+         (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
+                       taken))
+         (flexunit (if (> flex 0) (/ remainder flex) 0))
+         (left 10))
+    (for-each
+     (lambda (w wid)
+       (cond (wid (widget-draw w left wid)
+                  (set! left (+ left wid)))
+             (else (let ((wid (* flexunit (slot-value w 'flex))))
+                     (widget-draw w left wid)
+                     (set! left (+ left wid))))))
+     (slot-value window 'widgets)
+     wids)))
 
 
 ;;;
@@ -294,41 +322,11 @@
     font))
 
 
-(define (handleexpose xwindow)
-  (let* ((window (find (lambda (window)
-                         (equal? (slot-value window 'xwindow) xwindow))
-                       *windows*))
-         (taken 0)
-         (flex 0)
-         (wids (map (lambda (x)
-                      (if* (slot-value x 'flex)
-                           (begin (set! flex (+ flex it))
-                                  #f)
-                           (let ((wid (widget-width x)))
-                             (set! taken (+ taken wid))
-                             wid)))
-                    (slot-value window 'widgets)))
-         ;;XXX: we should be using the width of the window, not the screen.
-         (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
-                       taken))
-         (flexunit (if (> flex 0) (/ remainder flex) 0))
-         (left 10))
-    (for-each
-     (lambda (w wid)
-       (cond (wid (widget-draw w left wid)
-                  (set! left (+ left wid)))
-             (else (let ((wid (* flexunit (slot-value w 'flex))))
-                     (widget-draw w left wid)
-                     (set! left (+ left wid))))))
-     (slot-value window 'widgets)
-     wids)))
-
-
 (define (update . params)
   (let* ((name (first params))
          (widget (hash-table-ref *widgets* name)))
     (widget-update widget (cdr params))
-    (handleexpose (slot-value (slot-value widget 'window) 'xwindow))))
+    (window-expose (slot-value widget 'window))))
 
 
 (define (start-server commands)
@@ -349,7 +347,11 @@
            ((= type CLIENTMESSAGE)
             (set! done #t))
            ((= type EXPOSE)
-            (handleexpose (xexposeevent-window event)))
+            (let* ((xwindow (xexposeevent-window event))
+                   (window (find (lambda (win)
+                                   (equal? (slot-value win 'xwindow) xwindow))
+                                 *windows*)))
+              (window-expose window)))
            ((= type BUTTONPRESS)
             (set! done #t)))))
       (dbus:poll-for-message)
@@ -388,7 +390,7 @@
                                   STRUCTURENOTIFYMASK))
        (xmapwindow *display* (slot-value w 'xwindow))
        (xnextevent *display* event)
-       (handleexpose (slot-value w 'xwindow)))
+       (window-expose w))
      *windows*)
     (xflush *display*)
     (eventloop))
