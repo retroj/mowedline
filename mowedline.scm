@@ -26,6 +26,7 @@
      filepath
      list-utils
      lolevel
+     matchable
      miscmacros
      posix
      xlib)
@@ -331,7 +332,7 @@
     #t))
 
 
-(define (start-server commands)
+(define (start-server commands client-commands)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
@@ -402,6 +403,14 @@
        (window-expose w))
      *windows*)
     (xflush *display*)
+    ;; horrible hack
+    (for-each
+     (lambda (cmd)
+       (match cmd
+         (("quit") (quit))
+         (("read" widget source) 1)
+         (("update" widget value) (update widget value))))
+     client-commands)
     (eventloop))
   (xclosedisplay *display*))
 
@@ -593,9 +602,7 @@
        server-commands))
     (start-client client-commands))
    (else
-    (process-fork (lambda () (start-server server-commands)))
-    ;; wait for the server to be ready?
-    (start-client client-commands))))
+    (process-fork (lambda () (start-server server-commands client-commands))))))
 
 ;; (put 'foreign-lambda* 'scheme-indent-function 2)
 ;; (put 'let-location 'scheme-indent-function 1)
