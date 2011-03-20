@@ -376,8 +376,7 @@
 
     (when (null? *default-widgets*)
       (push! (make <text-widget>
-               'name "default"
-               'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+               'name "default")
              *default-widgets*))
 
     (when (null? *windows*)
