@@ -398,8 +398,7 @@
 (define (start-client commands)
   (for-each
    (lambda (cmd)
-     (let* ((def (assoc (car cmd) client-options
-                        (lambda (a b) (equal? a (symbol->string (car b)))))))
+     (let* ((def (find-command-def (car cmd) client-options)))
        (apply (command-body def) (cdr cmd))))
    commands))
 
@@ -407,21 +406,26 @@
 (define-syntax make-command
   (syntax-rules (#:doc)
     ((make-command (name . args) #:doc doc . body)
-     `((name . args) doc ,(lambda args . body)))
+     (vector '(name . args) doc (lambda args . body)))
     ((make-command (name . args) . body)
-     `((name . args) #f ,(lambda args . body)))))
+     (vector '(name . args) #f (lambda args . body)))))
 
 (define (command-name command-def)
-  (first (first command-def)))
+  (first (vector-ref command-def 0)))
 
 (define (command-args command-def)
-  (rest (first command-def)))
+  (rest (vector-ref command-def 0)))
 
 (define (command-doc command-def)
-  (second command-def))
+  (vector-ref command-def 1))
 
 (define (command-body command-def)
-  (third command-def))
+  (vector-ref command-def 2))
+
+
+(define (find-command-def name command-set)
+  (find (lambda (x) (equal? name (symbol->string (command-name x))))
+   command-set))
 
 
 (define server-options
@@ -536,13 +540,12 @@
                (op (string-trim opsym #\-))
                (def #f)
                (optype (find (lambda (optype)
-                               (set! def (assoc op (eval optype)
-                                                (lambda (a b) (equal? a (symbol->string (car b))))))
+                               (set! def (find-command-def op (eval optype)))
                                def)
                              '(server-options client-options special-options))))
           (unless def
             (error (sprintf "unexpected symbol ~S~%" opsym)))
-          (let ((narg (- (length (car def)) 1)))
+          (let ((narg (length (command-args def))))
             (when (< count narg)
               (error (sprintf "~A requires ~A arguments, but only ~A were given"
                               op narg count)))
@@ -558,8 +561,7 @@
   (cond
    ((not (null? special-commands))
     (let* ((cmd (first special-commands))
-           (def (assoc (car cmd) special-options
-                       (lambda (a b) (equal? a (symbol->string (car b)))))))
+           (def (find-command-def (car cmd) special-options)))
       (apply (command-body def) (cdr cmd)))
     (unless (and (null? (rest special-commands))
                  (null? server-commands)
