@@ -170,6 +170,71 @@
 
 
 ;;;
+;;; Window Property Utils
+;;;
+
+(define (property-type property)
+  (vector-ref property 0))
+(define (property-format property)
+  (vector-ref property 1))
+(define (property-data property)
+  (vector-ref property 2))
+(define (property-count property)
+  (vector-ref property 3))
+
+(define (make-atom-property atom-name)
+  (let ((data (xinternatom *display* atom-name 0)))
+    (let-location ((data unsigned-long data))
+      (vector "ATOM" 32
+              (location data)    
+              1))))
+
+(define (make-number-property number)
+  (let-location ((data unsigned-long number))
+    (vector "CARDINAL" 32 (location data) 1)))
+
+(define (make-numbers-property numbers)
+  (let* ((vec (list->u32vector numbers))
+         (len (u32vector-length vec))
+         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
+                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
+                  "int i;"
+                  "for (i = 0; i < length; i++) {"
+                  "    lvec[i] = s[i];"
+                  "}"
+                  "C_return(lvec);")
+                vec len)))
+    (set-finalizer! lvec free)
+    (vector "CARDINAL" 32 lvec len)))
+
+(define (make-text-property textp)
+  (let ((tp (make-xtextproperty)))
+    (set-xtextproperty-value! tp (make-locative textp))
+    (set-xtextproperty-encoding! tp XA_STRING)
+    (set-xtextproperty-format! tp 32)
+    (set-xtextproperty-nitems! tp 1)
+    tp))
+
+(define (window-property-set win key value)
+  (xchangeproperty *display* win
+                   (xinternatom *display* key 0)
+                   (xinternatom *display* (property-type value) 0)
+                   (property-format value)
+                   PROPMODEREPLACE
+                   (property-data value)
+                   (property-count value)))
+
+(define (window-property-append win key value)
+  (xchangeproperty *display* win
+                   (xinternatom *display* key 0)
+                   (xinternatom *display* (property-type value) 0)
+                   (property-format value)
+                   PROPMODEAPPEND
+                   (property-data value)
+                   (property-count value)))
+
+
+;;;
 ;;; Widgets
 ;;;
 
@@ -250,71 +315,6 @@
               (slot-value widget 'text)
               (string-length (slot-value widget 'text))))
 
-
-
-;;;
-;;; Window Property Utils
-;;;
-
-(define (property-type property)
-  (vector-ref property 0))
-(define (property-format property)
-  (vector-ref property 1))
-(define (property-data property)
-  (vector-ref property 2))
-(define (property-count property)
-  (vector-ref property 3))
-
-(define (make-atom-property atom-name)
-  (let ((data (xinternatom *display* atom-name 0)))
-    (let-location ((data unsigned-long data))
-      (vector "ATOM" 32
-              (location data)    
-              1))))
-
-(define (make-number-property number)
-  (let-location ((data unsigned-long number))
-    (vector "CARDINAL" 32 (location data) 1)))
-
-(define (make-numbers-property numbers)
-  (let* ((vec (list->u32vector numbers))
-         (len (u32vector-length vec))
-         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
-                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
-                  "int i;"
-                  "for (i = 0; i < length; i++) {"
-                  "    lvec[i] = s[i];"
-                  "}"
-                  "C_return(lvec);")
-                vec len)))
-    (set-finalizer! lvec free)
-    (vector "CARDINAL" 32 lvec len)))
-
-(define (make-text-property textp)
-  (let ((tp (make-xtextproperty)))
-    (set-xtextproperty-value! tp (make-locative textp))
-    (set-xtextproperty-encoding! tp XA_STRING)
-    (set-xtextproperty-format! tp 32)
-    (set-xtextproperty-nitems! tp 1)
-    tp))
-
-(define (window-property-set win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (property-type value) 0)
-                   (property-format value)
-                   PROPMODEREPLACE
-                   (property-data value)
-                   (property-count value)))
-
-(define (window-property-append win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (property-type value) 0)
-                   (property-format value)
-                   PROPMODEAPPEND
-                   (property-data value)
-                   (property-count value)))
 
 
 (define (get-font font-name)
