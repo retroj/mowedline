@@ -320,8 +320,7 @@
 
 
 (define (get-font font-name)
-  (let ((font (xloadqueryfont *display* font-name)))
-    font))
+  (xloadqueryfont *display* font-name))
 
 
 (define (update . params)
