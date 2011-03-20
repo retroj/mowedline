@@ -325,10 +325,11 @@
 
 
 (define (update . params)
-  (let* ((name (first params))
-         (widget (hash-table-ref *widgets* name)))
+  (and-let* ((name (first params))
+             (widget (hash-table-ref/default *widgets* name #f)))
     (widget-update widget (cdr params))
-    (window-expose (slot-value widget 'window))))
+    (window-expose (slot-value widget 'window))
+    #t))
 
 
 (define (start-server commands)
@@ -476,7 +477,8 @@
        (let ((dbus-context
               (dbus:make-context service: 'mowedline.server
                                  interface: 'mowedline.interface)))
-         (dbus:call dbus-context "update" widget value)))))
+         (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+           (printf "widget not found, ~S~%" widget))))))
 
 
 (define special-options
@@ -601,3 +603,4 @@
 ;; (put 'let-location 'scheme-indent-function 1)
 ;; (put 'match 'scheme-indent-function 1)
 ;; (put 'make-command 'scheme-indent-function 1)
+;; (put 'and-let* 'scheme-indent-function 1)
