@@ -54,6 +54,8 @@
 
 (define *widgets* (make-hash-table test: equal?))
 
+(define *default-widgets* (list))
+
 
 ;;;
 ;;; Window
@@ -365,14 +367,22 @@
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
 
-    ;; now command line options get processed, somehow
+    ;; process server commands
+    (for-each
+     (lambda (cmd)
+       (let* ((def (find-command-def (car cmd) server-options)))
+         (apply (command-body def) (cdr cmd))))
+     commands)
+
+    (when (null? *default-widgets*)
+      (push! (make <text-widget>
+               'name "default"
+               'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+             *default-widgets*))
 
     (when (null? *windows*)
       (make <window>
-        'widgets
-        (L (make <text-widget>
-             'name "default"
-             'text "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))))
+        'widgets *default-widgets*))
 
     (let ((dbus-context
            (dbus:make-context service: 'mowedline.server
@@ -431,7 +441,10 @@
 
 
 (define server-options
-  (L (make-command (text-widget name) 1)
+  (L (make-command (text-widget name)
+       (push! (make <text-widget>
+                'name name)
+              *default-widgets*))
      (make-command (bg color) 1)
      (make-command (fg color) 1)
      (make-command (screen screen) 1)
