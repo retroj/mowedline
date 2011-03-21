@@ -453,10 +453,11 @@
        (push! (make <text-widget>
                 'name name)
               *default-widgets*))
-     (make-command (bg color) 1)
-     (make-command (fg color) 1)
-     (make-command (screen screen) 1)
-     (make-command (position position) 1)))
+     ;;(make-command (bg color) 1)
+     ;;(make-command (fg color) 1)
+     ;;(make-command (screen screen) 1)
+     ;;(make-command (position position) 1)
+     ))
 
 
 (define client-options
