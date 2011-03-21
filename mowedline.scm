@@ -423,6 +423,31 @@
    commands))
 
 
+(define (daemon-running?)
+  ;; this is our workaround for not being able to use
+  ;; dbus:discover-services prior to forking.  (it seems
+  ;; to be impossible to fork a dbus program once it's
+  ;; performed any communication.)
+  (call-with-values
+      (lambda ()
+        (process "dbus-send"
+                 (L "--type=method_call"
+                    "--print-reply"
+                    "--dest=org.freedesktop.DBus"
+                    "/org/freedesktop/DBus"
+                    "org.freedesktop.DBus.ListNames")))
+    (lambda (input output pid)
+      (define (read1)
+        (let ((line (read-line input)))
+          (cond ((eof-object? line) #f)
+                ((string-contains line "mowedline.server") #t)
+                (else (read1)))))
+      (let ((yes? (read1)))
+        (close-input-port input)
+        (close-output-port output)
+        yes?))))
+
+
 (define-syntax make-command
   (syntax-rules (#:doc)
     ((make-command (name . args) #:doc doc . body)
@@ -595,7 +620,7 @@
       (for-each
        (lambda (x) (printf "  ~S~%" x))
        (append! (rest special-commands) server-commands client-commands))))
-   ((member "mowedline.server" (dbus:discover-services))
+   ((daemon-running?)
     (when (not (null? server-commands))
       (printf "Warning: the following commands were ignored because the daemon is already running:~%")
       (for-each
