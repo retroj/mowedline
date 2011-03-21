@@ -332,7 +332,8 @@
     #t))
 
 
-(define (start-server commands client-commands)
+(define (start-server commands input output)
+  (file-close input)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
@@ -391,6 +392,9 @@
       (dbus:register-method dbus-context "update" update)
       (dbus:register-method dbus-context "quit" quit))
 
+    (file-write output "ready\n")
+    (file-close output)
+
     (for-each
      (lambda (w)
        (xselectinput *display*
@@ -403,14 +407,6 @@
        (window-expose w))
      *windows*)
     (xflush *display*)
-    ;; horrible hack
-    (for-each
-     (lambda (cmd)
-       (match cmd
-         (("quit") (quit))
-         (("read" widget source) 1)
-         (("update" widget value) (update widget value))))
-     client-commands)
     (eventloop))
   (xclosedisplay *display*))
 
@@ -628,7 +624,15 @@
        server-commands))
     (start-client client-commands))
    (else
-    (process-fork (lambda () (start-server server-commands client-commands))))))
+    (call-with-values create-pipe
+      (lambda (input output)
+        (process-fork (lambda () (start-server server-commands input output)))
+        (file-close output)
+        ;; wait for something to come through on input so that we don't
+        ;; send commands until the daemon is ready to receive.
+        (file-read input 10)
+        (file-close input)
+        (start-client client-commands))))))
 
 ;; (put 'foreign-lambda* 'scheme-indent-function 2)
 ;; (put 'let-location 'scheme-indent-function 1)
