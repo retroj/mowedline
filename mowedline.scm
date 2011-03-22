@@ -494,7 +494,6 @@
        (let ((dbus-context
               (dbus:make-context service: 'mowedline.server
                                  interface: 'mowedline.interface)))
-         ;; read source until EOF, calling update for each line
          (let ((port (if (equal? source "stdin:")
                          (current-input-port)
                          (open-input-file source))))
