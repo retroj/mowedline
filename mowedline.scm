@@ -26,7 +26,6 @@
      filepath
      list-utils
      lolevel
-     matchable
      miscmacros
      posix
      xlib)
