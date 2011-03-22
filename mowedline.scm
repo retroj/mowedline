@@ -495,11 +495,15 @@
               (dbus:make-context service: 'mowedline.server
                                  interface: 'mowedline.interface)))
          ;; read source until EOF, calling update for each line
-         (cond ((equal? source "stdin:")
-                (read-line))
-               (else
-                ))
-         1))
+         (let ((port (if (equal? source "stdin:")
+                         (current-input-port)
+                         (open-input-file source))))
+           (let loop ()
+             (let ((line (read-line port)))
+               (unless (eof-object? line)
+                 (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+                   (printf "widget not found, ~S~%" widget))
+                 (loop)))))))
 
      (make-command (update widget value)
        doc: "updates widget with value"
