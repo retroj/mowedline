@@ -451,7 +451,7 @@
      (vector '(name . args) #f (lambda args . body)))))
 
 (define (command-name command-def)
-  (first (vector-ref command-def 0)))
+  (symbol->string (first (vector-ref command-def 0))))
 
 (define (command-args command-def)
   (rest (vector-ref command-def 0)))
@@ -464,7 +464,7 @@
 
 
 (define (find-command-def name command-set)
-  (find (lambda (x) (equal? name (symbol->string (command-name x))))
+  (find (lambda (x) (equal? name (command-name x)))
    command-set))
 
 
@@ -519,7 +519,7 @@
               (fold max 0
                     (map
                      (lambda (def)
-                       (apply + 2 (string-length (symbol->string (command-name def)))
+                       (apply + 2 (string-length (command-name def))
                               (* 3 (length (command-args def)))
                               (map (compose string-length symbol->string)
                                    (command-args def))))
@@ -528,7 +528,7 @@
          (define (help-section option-group)
            (for-each
             (lambda (def)
-              (let ((col1 (apply string-append " -" (symbol->string (command-name def))
+              (let ((col1 (apply string-append " -" (command-name def)
                                  (map (lambda (a)
                                         (string-append " <" (symbol->string a) ">"))
                                       (command-args def)))))
