@@ -61,8 +61,6 @@
 ;;; Window
 ;;;
 
-(define-generic (window-expose window))
-
 (define-class <window> ()
   ((screen initform: (xdefaultscreen *display*))
    (position initform: 'top)
@@ -94,6 +92,7 @@
     (set! (slot-value window 'xwindow) xwindow)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window 'widgets))
+    (window-setup-widget-dimensions window)
 
     (let ((attr (make-xsetwindowattributes)))
       (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
@@ -144,30 +143,57 @@
 
     (push! window *windows*)))
 
-(define-method (window-expose (window <window>))
-  (let* ((taken 0)
-         (flex 0)
-         (wids (map (lambda (x)
-                      (if* (slot-value x 'flex)
-                           (begin (set! flex (+ flex it))
-                                  #f)
-                           (let ((wid (widget-width x)))
-                             (set! taken (+ taken wid))
-                             wid)))
-                    (slot-value window 'widgets)))
-         ;;XXX: we should be using the width of the window, not the screen.
-         (remainder (- (xdisplaywidth *display* (slot-value window 'screen))
-                       taken))
-         (flexunit (if (> flex 0) (/ remainder flex) 0))
-         (left 10))
+(define window-expose
+  (case-lambda
+   ((window xrectangle)
+    ;; exposing a given rectangle means drawing all widgets which
+    ;; intersect that rectangle, passing the rectangle in to them so they
+    ;; can use it as a mask (via a region).
+    (let ((widgets (slot-value window 'widgets))
+          (r (xcreateregion)))
+      (xunionrectwithregion xrectangle (xcreateregion) r)
+      (for-each
+       (lambda (widget)
+         ;; does this widget intersect xrectangle?
+         (let* ((wrect (slot-value widget 'xrectangle))
+                (x (xrectangle-x wrect))
+                (y 0)
+                (width (xrectangle-width wrect))
+                (height (slot-value window 'height)))
+           (when (member (xrectinregion r x y width height)
+                         (L RECTANGLEPART RECTANGLEIN))
+             ;;XXX: we need to intersect r with wrect
+             (widget-draw widget r))))
+       widgets)))
+    ((window)
+     (window-expose window
+                    (make-rectangle
+                     0 0 (slot-value window 'width)
+                     (slot-value window 'height))))))
+
+(define (window-setup-widget-dimensions window)
+  (let* ((widgets (slot-value window 'widgets))
+         (widsum 0)
+         (flexsum 0)
+         (wids (map       ;; sum widths & flexes, and accumulate widths
+                (lambda (widget)
+                  (and-let* ((flex (slot-value widget 'flex)))
+                    (inc! flexsum flex))
+                  (and-let* ((wid (widget-width widget)))
+                    (inc! widsum wid)
+                    wid))
+                widgets))
+         (remainder (- (slot-value window 'width) widsum))
+         (flexunit (if (> flexsum 0) (/ remainder flexsum) 0))
+         (x 0))
     (for-each
-     (lambda (w wid)
-       (cond (wid (widget-draw w left wid)
-                  (set! left (+ left wid)))
-             (else (let ((wid (* flexunit (slot-value w 'flex))))
-                     (widget-draw w left wid)
-                     (set! left (+ left wid))))))
-     (slot-value window 'widgets)
+     (lambda (widget wid)
+       (let ((rect (slot-value widget 'xrectangle))
+             (wid (or wid (* flexunit (slot-value widget 'flex)))))
+         (set-xrectangle-x! rect x)
+         (set-xrectangle-width! rect wid)
+         (inc! x wid)))
+     widgets
      wids)))
 
 
@@ -240,7 +266,7 @@
 ;;; Widgets
 ;;;
 
-(define-generic (widget-draw widget x wid))
+(define-generic (widget-draw widget region))
 (define-generic (widget-height widget))
 (define-generic (widget-update widget params))
 (define-generic (widget-width widget))
@@ -250,7 +276,8 @@
   ((name)
    (flex initform: #f)
    (window)
-   (gc)))
+   (gc)
+   (xrectangle initform: (make-xrectangle))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -259,10 +286,20 @@
   (hash-table-set! *widgets* (slot-value widget 'name) widget))
 
 (define-method (widget-set-window! (widget <widget>) (window <window>))
-  (set! (slot-value widget 'window) window))
+  (set! (slot-value widget 'window) window)
+  (let ((gc (xcreategc *display*
+                       (slot-value window 'xwindow)
+                       0 #f)))
+    (xsetbackground *display* gc (xblackpixel *display* (slot-value window 'screen)))
+    (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen)))
+    (xsetfunction *display* gc GXCOPY)
+    (set! (slot-value widget 'gc) gc)))
 
 (define-method (widget-height (widget <widget>)) 1)
-(define-method (widget-width (widget <widget>)) 1)
+(define-method (widget-width (widget <widget>))
+  (if (not (slot-value widget 'flex))
+      1
+      #f))
 
 ;; Text Widget
 ;;
@@ -274,27 +311,14 @@
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
-  (let ((gc (xcreategc *display*
-                       (slot-value window 'xwindow)
-                       0 #f)))
-    (xsetbackground *display* gc (xblackpixel *display* (slot-value window 'screen)))
-    (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen)))
-    (xsetfunction *display* gc GXCOPY)
-    (xsetfont *display* gc (xfontstruct-fid (slot-value widget 'font)))
-    ;;(xsetregion *display* gc (xcreateregion))
-    (set! (slot-value widget 'gc) gc)))
+  (xsetfont *display* (slot-value widget 'gc)
+            (xfontstruct-fid (slot-value widget 'font))))
 
-(define-method (widget-draw (widget <text-widget>) x wid)
-  ;; XCreateRegion() --> pointer to region
-  ;; XUnionRectWithRegion()
-  ;; XDestroyRegion()
-  ;; (xoffsetregion r x 0)
-
-  ; (xunionrectwithregion rect src dest)
-  ; (let ((r (xcreateregion)))
-  ;   (xsetregion *display* gc r))
-  (let ((text (slot-value widget 'text))
+(define-method (widget-draw (widget <text-widget>) region)
+  (let ((x (xrectangle-x (slot-value widget 'xrectangle)))
+        (text (slot-value widget 'text))
         (baseline (xfontstruct-ascent (slot-value widget 'font))))
+    (xsetregion *display* (slot-value widget 'gc) region)
     (xdrawimagestring *display*
                       (slot-value (slot-value widget 'window) 'xwindow)
                       (slot-value widget 'gc)
@@ -313,11 +337,22 @@
   (set! (slot-value widget 'text) (first params)))
 
 (define-method (widget-width (widget <text-widget>))
-  (xtextwidth (slot-value widget 'font)
-              (slot-value widget 'text)
-              (string-length (slot-value widget 'text))))
+  (if (not (slot-value widget 'flex))
+      (xtextwidth (slot-value widget 'font)
+                  (slot-value widget 'text)
+                  (string-length (slot-value widget 'text)))
+      #f))
 
 
+
+(define (make-rectangle x y width height)
+  (let ((r (make-xrectangle)))
+    (set-finalizer! r free-xrectangle)
+    (set-xrectangle-x! r x)
+    (set-xrectangle-y! r y)
+    (set-xrectangle-width! r width)
+    (set-xrectangle-height! r height)
+    r))
 
 (define (get-font font-name)
   (xloadqueryfont *display* font-name))
@@ -327,6 +362,15 @@
   (and-let* ((name (first params))
              (widget (hash-table-ref/default *widgets* name #f)))
     (widget-update widget (cdr params))
+    ;; did this widget's size change?  if so, we may need to repaint other
+    ;; widgets.  if not, just repaint this one.
+
+    ;; if a widget's width changes, all flex widgets must have their size
+    ;; recomputed.  this in turn can cause non-flex widgets to be
+    ;; repositioned.  specifically, all widgets including and to the right
+    ;; of the first flex widget.
+
+    ;; window-expose may be the wrong thing to call?  hard to say.
     (window-expose (slot-value widget 'window))
     #t))
 
@@ -353,8 +397,12 @@
             (let* ((xwindow (xexposeevent-window event))
                    (window (find (lambda (win)
                                    (equal? (slot-value win 'xwindow) xwindow))
-                                 *windows*)))
-              (window-expose window)))
+                                 *windows*))
+                   (x (xexposeevent-x event))
+                   (y (xexposeevent-y event))
+                   (width (xexposeevent-width event))
+                   (height (xexposeevent-height event)))
+              (window-expose window (make-rectangle x y width height))))
            ((= type BUTTONPRESS)
             (set! done #t)))))
       (dbus:poll-for-message)
