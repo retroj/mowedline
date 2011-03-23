@@ -76,7 +76,7 @@
          (position (slot-value window 'position))
          (width (or (slot-value window 'width) (xdisplaywidth *display* screen)))
          (height (or (slot-value window 'height)
-                     (fold max 1 (map widget-height (slot-value window 'widgets)))))
+                     (fold max 1 (map widget-preferred-height (slot-value window 'widgets)))))
          (window-top (case position
                        ((bottom) (- shei height))
                        (else 0)))
@@ -179,7 +179,7 @@
                 (lambda (widget)
                   (and-let* ((flex (slot-value widget 'flex)))
                     (inc! flexsum flex))
-                  (and-let* ((wid (widget-width widget)))
+                  (and-let* ((wid (widget-preferred-width widget)))
                     (inc! widsum wid)
                     wid))
                 widgets))
@@ -267,9 +267,9 @@
 ;;;
 
 (define-generic (widget-draw widget region))
-(define-generic (widget-height widget))
+(define-generic (widget-preferred-height widget))
 (define-generic (widget-update widget params))
-(define-generic (widget-width widget))
+(define-generic (widget-preferred-width widget))
 (define-generic (widget-set-window! widget window))
 
 (define-class <widget> ()
@@ -295,8 +295,8 @@
     (xsetfunction *display* gc GXCOPY)
     (set! (slot-value widget 'gc) gc)))
 
-(define-method (widget-height (widget <widget>)) 1)
-(define-method (widget-width (widget <widget>))
+(define-method (widget-preferred-height (widget <widget>)) 1)
+(define-method (widget-preferred-width (widget <widget>))
   (if (not (slot-value widget 'flex))
       1
       #f))
@@ -324,7 +324,7 @@
                       (slot-value widget 'gc)
                       x baseline text (string-length text))))
 
-(define-method (widget-height (widget <text-widget>))
+(define-method (widget-preferred-height (widget <text-widget>))
   ;; i find even common fonts extend a pixel lower than their
   ;; declared descent.  tsk tsk.
   (let ((font (slot-value widget 'font)))
@@ -336,7 +336,7 @@
   ;; much of the window needed to be redrawn.
   (set! (slot-value widget 'text) (first params)))
 
-(define-method (widget-width (widget <text-widget>))
+(define-method (widget-preferred-width (widget <text-widget>))
   (if (not (slot-value widget 'flex))
       (xtextwidth (slot-value widget 'font)
                   (slot-value widget 'text)
