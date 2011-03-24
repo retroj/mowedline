@@ -438,7 +438,7 @@
 
     (when (null? *windows*)
       (make <window>
-        'widgets *default-widgets*))
+        'widgets (reverse! *default-widgets*)))
 
     (let ((dbus-context
            (dbus:make-context service: 'mowedline.server
