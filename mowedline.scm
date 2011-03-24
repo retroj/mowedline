@@ -425,8 +425,9 @@
                    (width (xexposeevent-width event))
                    (height (xexposeevent-height event)))
               (window-expose window (make-rectangle x y width height))))
-           ((= type BUTTONPRESS)
-            (set! done #t)))))
+           ;; ((= type BUTTONPRESS)
+           ;;  (set! done #t))
+           )))
       (dbus:poll-for-message)
       (unless done
         (eventloop)))
