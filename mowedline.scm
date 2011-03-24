@@ -354,6 +354,14 @@
     (set-xrectangle-height! r height)
     r))
 
+(define (print-rectangle rect)
+  (let ((x (xrectangle-x rect))
+        (y (xrectangle-y rect))
+        (width (xrectangle-width rect))
+        (height (xrectangle-height rect)))
+    (printf "#<xrectangle ~A ~A ~A ~A>~%"
+            x y width height)))
+
 (define (get-font font-name)
   (xloadqueryfont *display* font-name))
 
