@@ -292,9 +292,9 @@
 
 (define-generic (widget-draw widget region))
 (define-generic (widget-preferred-height widget))
-(define-generic (widget-update widget params))
 (define-generic (widget-preferred-width widget))
 (define-generic (widget-set-window! widget window))
+(define-generic (widget-update widget params))
 
 (define-class <widget> ()
   ((name)
@@ -355,12 +355,6 @@
   (let ((font (slot-value widget 'font)))
     (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
 
-(define-method (widget-update (widget <text-widget>) params)
-  ;; after update, the caller will call draw.  but efficiency could be
-  ;; gained if the caller knew if our width changed, thus determining how
-  ;; much of the window needed to be redrawn.
-  (set! (slot-value widget 'text) (first params)))
-
 (define-method (widget-preferred-width (widget <text-widget>))
   (if (not (slot-value widget 'flex))
       (xtextwidth (slot-value widget 'font)
@@ -368,6 +362,11 @@
                   (string-length (slot-value widget 'text)))
       #f))
 
+(define-method (widget-update (widget <text-widget>) params)
+  ;; after update, the caller will call draw.  but efficiency could be
+  ;; gained if the caller knew if our width changed, thus determining how
+  ;; much of the window needed to be redrawn.
+  (set! (slot-value widget 'text) (first params)))
 
 
 (define (make-rectangle x y width height)
