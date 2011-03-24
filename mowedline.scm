@@ -164,7 +164,18 @@
                          (L RECTANGLEPART RECTANGLEIN))
              ;;XXX: we need to intersect r with wrect
              (widget-draw widget r))))
-       widgets)))
+       widgets)
+      (let* ((lastwidget (last widgets))
+             (wrect (slot-value lastwidget 'xrectangle))
+             (p (+ (xrectangle-x wrect)
+                   (xrectangle-width wrect)))
+             (m (+ (xrectangle-x xrectangle)
+                   (xrectangle-width xrectangle))))
+        (when (> m p)
+          ;; blank the rectangle x=p, width=(m - p)
+          (xcleararea *display* (slot-value window 'xwindow)
+                      p 0 (- m p) (slot-value window 'height)
+                      0)))))
     ((window)
      (window-expose window
                     (make-rectangle
