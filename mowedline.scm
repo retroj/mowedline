@@ -162,8 +162,12 @@
                 (height (slot-value window 'height)))
            (when (member (xrectinregion r x y width height)
                          (L RECTANGLEPART RECTANGLEIN))
-             ;;XXX: we need to intersect r with wrect
-             (widget-draw widget r))))
+             ;;intersect r with wrect and pass result to widget-draw
+             (let ((wreg (xcreateregion))
+                   (out (xcreateregion)))
+               (xunionrectwithregion wrect out wreg)
+               (xintersectregion r wreg out)
+               (widget-draw widget out)))))
        widgets)
       (let* ((lastwidget (last widgets))
              (wrect (slot-value lastwidget 'xrectangle))
