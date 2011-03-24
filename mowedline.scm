@@ -691,9 +691,3 @@
         (file-read input 10)
         (file-close input)
         (start-client client-commands))))))
-
-;; (put 'foreign-lambda* 'scheme-indent-function 2)
-;; (put 'let-location 'scheme-indent-function 1)
-;; (put 'match 'scheme-indent-function 1)
-;; (put 'make-command 'scheme-indent-function 1)
-;; (put 'and-let* 'scheme-indent-function 1)
