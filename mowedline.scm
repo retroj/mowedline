@@ -344,13 +344,32 @@
             (xfontstruct-fid (slot-value widget 'font))))
 
 (define-method (widget-draw (widget <text-widget>) region)
-  (let ((x (xrectangle-x (slot-value widget 'xrectangle)))
-        (text (slot-value widget 'text))
-        (baseline (xfontstruct-ascent (slot-value widget 'font))))
+  (let* ((window (slot-value widget 'window))
+         (xwindow (slot-value window 'xwindow))
+         (wrect (slot-value widget 'xrectangle))
+         (gc (slot-value widget 'gc))
+         (x (xrectangle-x wrect))
+         (text (slot-value widget 'text))
+         (baseline (xfontstruct-ascent (slot-value widget 'font))))
+
+    (let ((trect (make-rectangle x 0
+                                 (xtextwidth (slot-value widget 'font)
+                                             (slot-value widget 'text)
+                                             (string-length (slot-value widget 'text)))
+                                 (let ((font (slot-value widget 'font)))
+                                   (+ (xfontstruct-ascent font) (xfontstruct-descent font)))))
+          (text-region (xcreateregion))
+          (out (xcreateregion)))
+      (xunionrectwithregion trect out text-region)
+      (xsubtractregion region text-region out)
+      (xsetregion *display* gc out)
+      (xsetforeground *display* gc (xblackpixel *display* (slot-value window 'screen)))
+      (xfillrectangle *display* xwindow gc
+                      x 0 (xrectangle-width wrect) (xrectangle-height wrect))
+      (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen))))
+
     (xsetregion *display* (slot-value widget 'gc) region)
-    (xdrawimagestring *display*
-                      (slot-value (slot-value widget 'window) 'xwindow)
-                      (slot-value widget 'gc)
+    (xdrawimagestring *display* xwindow gc
                       x baseline text (string-length text))))
 
 (define-method (widget-preferred-height (widget <text-widget>))
