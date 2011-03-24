@@ -185,16 +185,27 @@
                 widgets))
          (remainder (- (slot-value window 'width) widsum))
          (flexunit (if (> flexsum 0) (/ remainder flexsum) 0))
-         (x 0))
+         (x 0)
+         (rmin #f)  ;; redraw range
+         (rmax #f))
     (for-each
      (lambda (widget wid)
-       (let ((rect (slot-value widget 'xrectangle))
-             (wid (or wid (* flexunit (slot-value widget 'flex)))))
+       (let* ((rect (slot-value widget 'xrectangle))
+              (wid (or wid (* flexunit (slot-value widget 'flex))))
+              (oldx (xrectangle-x rect))
+              (oldwid (xrectangle-width rect)))
+         (unless (and (= oldx x)
+                      (= oldwid wid))
+           (set! rmin (min (or rmin x) oldx x))
+           (let ((rt (+ x wid))
+                 (oldrt (+ oldx oldwid)))
+             (set! rmax (max (or rmax rt) oldrt rt))))
          (set-xrectangle-x! rect x)
          (set-xrectangle-width! rect wid)
          (inc! x wid)))
      widgets
-     wids)))
+     wids)
+    (make-rectangle rmin 0 (- rmax rmin) (slot-value window 'height))))
 
 
 ;;;
@@ -370,16 +381,8 @@
   (and-let* ((name (first params))
              (widget (hash-table-ref/default *widgets* name #f)))
     (widget-update widget (cdr params))
-    ;; did this widget's size change?  if so, we may need to repaint other
-    ;; widgets.  if not, just repaint this one.
-
-    ;; if a widget's width changes, all flex widgets must have their size
-    ;; recomputed.  this in turn can cause non-flex widgets to be
-    ;; repositioned.  specifically, all widgets including and to the right
-    ;; of the first flex widget.
-
-    ;; window-expose may be the wrong thing to call?  hard to say.
-    (window-expose (slot-value widget 'window))
+    (let ((window (slot-value widget 'window)))
+      (window-expose window (window-setup-widget-dimensions window)))
     #t))
 
 
