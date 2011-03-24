@@ -449,12 +449,11 @@
          (apply (command-body def) (cdr cmd))))
      commands)
 
-    (when (null? *default-widgets*)
-      (push! (make <text-widget>
-               'name "default")
-             *default-widgets*))
-
     (when (null? *windows*)
+      (when (null? *default-widgets*)
+        (push! (make <text-widget>
+                 'name "default")
+               *default-widgets*))
       (make <window>
         'widgets (reverse! *default-widgets*)))
 
