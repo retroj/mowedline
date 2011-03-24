@@ -563,20 +563,17 @@
                                  interface: 'mowedline.interface)))
          (dbus:call dbus-context "quit")))
 
-     (make-command (read widget source)
-       doc: "updates widget by reading lines from source"
+     (make-command (read widget)
+       doc: "updates widget by reading lines from stdin"
        (let ((dbus-context
               (dbus:make-context service: 'mowedline.server
                                  interface: 'mowedline.interface)))
-         (let ((port (if (equal? source "stdin:")
-                         (current-input-port)
-                         (open-input-file source))))
-           (let loop ()
-             (let ((line (read-line port)))
-               (unless (eof-object? line)
-                 (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-                   (printf "widget not found, ~S~%" widget))
-                 (loop)))))))
+         (let loop ()
+           (let ((line (read-line (current-input-port))))
+             (unless (eof-object? line)
+               (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+                 (printf "widget not found, ~S~%" widget))
+               (loop))))))
 
      (make-command (update widget value)
        doc: "updates widget with value"
