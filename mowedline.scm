@@ -299,7 +299,7 @@
    (flex initform: #f)
    (window)
    (gc)
-   (xrectangle initform: (make-xrectangle))))
+   (xrectangle initform: (make-rectangle 0 0 0 0))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -315,7 +315,8 @@
     (xsetbackground *display* gc (xblackpixel *display* (slot-value window 'screen)))
     (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen)))
     (xsetfunction *display* gc GXCOPY)
-    (set! (slot-value widget 'gc) gc)))
+    (set! (slot-value widget 'gc) gc)
+    (set-xrectangle-height! (slot-value widget 'xrectangle) (slot-value window 'height))))
 
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
