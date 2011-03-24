@@ -216,7 +216,9 @@
          (inc! x wid)))
      widgets
      wids)
-    (make-rectangle rmin 0 (- rmax rmin) (slot-value window 'height))))
+    (if rmin
+        (make-rectangle rmin 0 (- rmax rmin) (slot-value window 'height))
+        #f)))
 
 
 ;;;
@@ -394,7 +396,8 @@
              (widget (hash-table-ref/default *widgets* name #f)))
     (widget-update widget (cdr params))
     (let ((window (slot-value widget 'window)))
-      (window-expose window (window-setup-widget-dimensions window)))
+      (window-expose window (or (window-setup-widget-dimensions window)
+                                (slot-value widget 'xrectangle))))
     #t))
 
 
