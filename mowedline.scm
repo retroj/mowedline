@@ -721,7 +721,10 @@
    (else
     (call-with-values create-pipe
       (lambda (input output)
-        (process-fork (lambda () (start-server server-commands input output)))
+        (process-fork
+         (lambda ()
+           (create-session)
+           (start-server server-commands input output)))
         (file-close output)
         ;; wait for something to come through on input so that we don't
         ;; send commands until the daemon is ready to receive.
