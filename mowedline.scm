@@ -546,6 +546,11 @@
     ((make-command (name . args) . body)
      (vector '(name . args) #f (lambda args . body)))))
 
+(define-syntax define-command-group
+  (syntax-rules ()
+    ((define-command-group name command ...)
+     (define name (list (make-command . command) ...)))))
+
 (define (command-name command-def)
   (symbol->string (first (vector-ref command-def 0))))
 
@@ -564,85 +569,85 @@
    command-set))
 
 
-(define server-options
-  (L (make-command (text-widget name)
-       (push! (make <text-widget>
-                'name name)
-              *default-widgets*))
-     ;;(make-command (bg color) 1)
-     ;;(make-command (fg color) 1)
-     ;;(make-command (screen screen) 1)
-     ;;(make-command (position position) 1)
-     ))
+(define-command-group server-options
+  ((text-widget name)
+   (push! (make <text-widget>
+            'name name)
+          *default-widgets*))
+  ;;(make-command (bg color) 1)
+  ;;(make-command (fg color) 1)
+  ;;(make-command (screen screen) 1)
+  ;;(make-command (position position) 1)
+  )
 
 
-(define client-options
-  (L (make-command (quit)
-       doc: "quit the program"
-       (let ((dbus-context
-              (dbus:make-context service: 'mowedline.server
-                                 interface: 'mowedline.interface)))
-         (dbus:call dbus-context "quit")))
+(define-command-group client-options
+  ((quit)
+   doc: "quit the program"
+   (let ((dbus-context
+          (dbus:make-context service: 'mowedline.server
+                             interface: 'mowedline.interface)))
+     (dbus:call dbus-context "quit")))
 
-     (make-command (read widget)
-       doc: "updates widget by reading lines from stdin"
-       (let ((dbus-context
-              (dbus:make-context service: 'mowedline.server
-                                 interface: 'mowedline.interface)))
-         (let loop ()
-           (let ((line (read-line (current-input-port))))
-             (unless (eof-object? line)
-               (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-                 (printf "widget not found, ~S~%" widget))
-               (loop))))))
+  ((read widget)
+   doc: "updates widget by reading lines from stdin"
+   (let ((dbus-context
+          (dbus:make-context service: 'mowedline.server
+                             interface: 'mowedline.interface)))
+     (let loop ()
+       (let ((line (read-line (current-input-port))))
+         (unless (eof-object? line)
+           (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+             (printf "widget not found, ~S~%" widget))
+           (loop))))))
 
-     (make-command (update widget value)
-       doc: "updates widget with value"
-       (let ((dbus-context
-              (dbus:make-context service: 'mowedline.server
-                                 interface: 'mowedline.interface)))
-         (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-           (printf "widget not found, ~S~%" widget))))))
+  ((update widget value)
+   doc: "updates widget with value"
+   (let ((dbus-context
+          (dbus:make-context service: 'mowedline.server
+                             interface: 'mowedline.interface)))
+     (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+       (printf "widget not found, ~S~%" widget)))))
 
 
-(define special-options
-  (L (make-command (help)
-       doc: "displays this help"
-       (let ((longest
-              (fold max 0
-                    (map
-                     (lambda (def)
-                       (apply + 2 (string-length (command-name def))
-                              (* 3 (length (command-args def)))
-                              (map (compose string-length symbol->string)
-                                   (command-args def))))
-                     (append server-options client-options special-options))))
-             (docspc 3))
-         (define (help-section option-group)
-           (for-each
-            (lambda (def)
-              (let ((col1 (apply string-append " -" (command-name def)
-                                 (map (lambda (a)
-                                        (string-append " <" (symbol->string a) ">"))
-                                      (command-args def)))))
-                (display col1)
-                (when (command-doc def)
-                  (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
-                  (display (command-doc def)))
-                (newline)))
-            option-group))
-         (printf "mowedline version ~A, by John J. Foerch~%" version)
-         (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
-         (help-section special-options)
-         (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
-         (help-section server-options)
-         (printf "~%CLIENT OPTIONS~%~%")
-         (help-section client-options)
-         (newline)))
+(define-command-group special-options
+  ((help)
+   doc: "displays this help"
+   (let ((longest
+          (fold max 0
+                (map
+                 (lambda (def)
+                   (apply + 2 (string-length (command-name def))
+                          (* 3 (length (command-args def)))
+                          (map (compose string-length symbol->string)
+                               (command-args def))))
+                 (append server-options client-options special-options))))
+         (docspc 3))
+     (define (help-section option-group)
+       (for-each
+        (lambda (def)
+          (let ((col1 (apply string-append " -" (command-name def)
+                             (map (lambda (a)
+                                    (string-append " <" (symbol->string a) ">"))
+                                  (command-args def)))))
+            (display col1)
+            (when (command-doc def)
+              (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
+              (display (command-doc def)))
+            (newline)))
+        option-group))
+     (printf "mowedline version ~A, by John J. Foerch~%" version)
+     (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
+     (help-section special-options)
+     (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
+     (help-section server-options)
+     (printf "~%CLIENT OPTIONS~%~%")
+     (help-section client-options)
+     (newline)))
 
-    (make-command (version)
-      doc: "prints the version"
-      (printf "mowedline version ~A, by John J. Foerch~%" version))))
+  ((version)
+   doc: "prints the version"
+   (printf "mowedline version ~A, by John J. Foerch~%" version)))
 
 
 (define (make-commands-stucture)
