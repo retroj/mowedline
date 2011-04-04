@@ -23,7 +23,6 @@
          command-body
          command-name-string
          make-command-group
-         find-command-def
          call-info-name
          call-info-args
          call-info-thunk
