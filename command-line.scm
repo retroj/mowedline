@@ -61,7 +61,7 @@
 (define-record call-info
   name args thunk)
 
-(define (mkcmd def args)
+(define (mk-call-info def args)
   (let ((name (command-name-string def))
         (body (command-body def)))
     (make-call-info name args
@@ -89,7 +89,7 @@
                 (error (sprintf "~A requires ~A arguments, but only ~A were given"
                                 op narg count)))
               (let ((d (list-tail out group-index)))
-                (set-car! d (append! (car d) (list (mkcmd def (take input narg))))))
+                (set-car! d (append! (car d) (list (mk-call-info def (take input narg))))))
               (loop (list-tail input narg) (- count narg))))))
     (loop input (length input))))
 
