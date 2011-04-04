@@ -28,7 +28,7 @@
          call-info-thunk
          parse-command-line)
 
-(import chicken scheme extras)
+(import chicken scheme)
 
 (use srfi-1
      srfi-13)
