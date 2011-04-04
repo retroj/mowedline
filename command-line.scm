@@ -33,13 +33,27 @@
 (use srfi-1
      srfi-13)
 
+;;;
+;;; Language
+;;;
+
 (define rest cdr)
+
+
+;;;
+;;; Command
+;;;
 
 (define-record command
   name args doc body)
 
 (define (command-name-string command-def)
   (symbol->string (command-name command-def)))
+
+
+;;;
+;;; Command Group
+;;;
 
 (define-syntax mk-command
   (syntax-rules (#:doc)
@@ -58,6 +72,10 @@
         command-group))
 
 
+;;;
+;;; Call Info
+;;;
+
 (define-record call-info
   name args thunk)
 
@@ -66,6 +84,11 @@
         (body (command-body def)))
     (make-call-info name args
                     (lambda () (apply body args)))))
+
+
+;;;
+;;; Parser
+;;;
 
 (define (parse-command-line input . command-groups)
   (let ((out (map (lambda (x) (list)) command-groups)))
