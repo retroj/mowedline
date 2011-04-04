@@ -466,11 +466,8 @@
            (load it (lambda (form) (eval form env)))))
 
     ;; process server commands
-    (for-each
-     (lambda (cmd)
-       (let* ((def (find-command-def (car cmd) server-options)))
-         (apply (command-body def) (cdr cmd))))
-     commands)
+    (for-each (lambda (cmd) ((call-info-thunk cmd)))
+              commands)
 
     (when (null? *windows*)
       (when (null? *default-widgets*)
@@ -507,11 +504,8 @@
 
 
 (define (start-client commands)
-  (for-each
-   (lambda (cmd)
-     (let* ((def (find-command-def (car cmd) client-options)))
-       (apply (command-body def) (cdr cmd))))
-   commands))
+  (for-each (lambda (cmd) ((call-info-thunk cmd)))
+            commands))
 
 
 (define (daemon-running?)
@@ -546,10 +540,10 @@
     ((make-command (name . args) . body)
      (vector '(name . args) #f (lambda args . body)))))
 
-(define-syntax define-command-group
+(define-syntax make-command-group
   (syntax-rules ()
-    ((define-command-group name command ...)
-     (define name (list (make-command . command) ...)))))
+    ((make-command-group command ...)
+     (list (make-command . command) ...))))
 
 (define (command-name command-def)
   (symbol->string (first (vector-ref command-def 0))))
@@ -569,158 +563,146 @@
    command-group))
 
 
-(define-command-group server-options
-  ((text-widget name)
-   (push! (make <text-widget>
-            'name name)
-          *default-widgets*))
-  ;;(make-command (bg color) 1)
-  ;;(make-command (fg color) 1)
-  ;;(make-command (screen screen) 1)
-  ;;(make-command (position position) 1)
-  )
+(define server-options
+  (make-command-group
+   ((text-widget name)
+    (push! (make <text-widget>
+             'name name)
+           *default-widgets*))
+   ;;(make-command (bg color) 1)
+   ;;(make-command (fg color) 1)
+   ;;(make-command (screen screen) 1)
+   ;;(make-command (position position) 1)
+   ))
 
 
-(define-command-group client-options
-  ((quit)
-   doc: "quit the program"
-   (let ((dbus-context
-          (dbus:make-context service: 'mowedline.server
-                             interface: 'mowedline.interface)))
-     (dbus:call dbus-context "quit")))
+(define client-options
+  (make-command-group
+   ((quit)
+    doc: "quit the program"
+    (let ((dbus-context
+           (dbus:make-context service: 'mowedline.server
+                              interface: 'mowedline.interface)))
+      (dbus:call dbus-context "quit")))
 
-  ((read widget)
-   doc: "updates widget by reading lines from stdin"
-   (let ((dbus-context
-          (dbus:make-context service: 'mowedline.server
-                             interface: 'mowedline.interface)))
-     (let loop ()
-       (let ((line (read-line (current-input-port))))
-         (unless (eof-object? line)
-           (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-             (printf "widget not found, ~S~%" widget))
-           (loop))))))
+   ((read widget)
+    doc: "updates widget by reading lines from stdin"
+    (let ((dbus-context
+           (dbus:make-context service: 'mowedline.server
+                              interface: 'mowedline.interface)))
+      (let loop ()
+        (let ((line (read-line (current-input-port))))
+          (unless (eof-object? line)
+            (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+              (printf "widget not found, ~S~%" widget))
+            (loop))))))
 
-  ((update widget value)
-   doc: "updates widget with value"
-   (let ((dbus-context
-          (dbus:make-context service: 'mowedline.server
-                             interface: 'mowedline.interface)))
-     (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-       (printf "widget not found, ~S~%" widget)))))
-
-
-(define-command-group special-options
-  ((help)
-   doc: "displays this help"
-   (let ((longest
-          (fold max 0
-                (map
-                 (lambda (def)
-                   (apply + 2 (string-length (command-name def))
-                          (* 3 (length (command-args def)))
-                          (map (compose string-length symbol->string)
-                               (command-args def))))
-                 (append server-options client-options special-options))))
-         (docspc 3))
-     (define (help-section option-group)
-       (for-each
-        (lambda (def)
-          (let ((col1 (apply string-append " -" (command-name def)
-                             (map (lambda (a)
-                                    (string-append " <" (symbol->string a) ">"))
-                                  (command-args def)))))
-            (display col1)
-            (when (command-doc def)
-              (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
-              (display (command-doc def)))
-            (newline)))
-        option-group))
-     (printf "mowedline version ~A, by John J. Foerch~%" version)
-     (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
-     (help-section special-options)
-     (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
-     (help-section server-options)
-     (printf "~%CLIENT OPTIONS~%~%")
-     (help-section client-options)
-     (newline)))
-
-  ((version)
-   doc: "prints the version"
-   (printf "mowedline version ~A, by John J. Foerch~%" version)))
+   ((update widget value)
+    doc: "updates widget with value"
+    (let ((dbus-context
+           (dbus:make-context service: 'mowedline.server
+                              interface: 'mowedline.interface)))
+      (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+        (printf "widget not found, ~S~%" widget))))))
 
 
-(define (make-commands-stucture)
-  (vector '() '() '()))
+(define special-options
+  (make-command-group
+   ((help)
+    doc: "displays this help"
+    (let ((longest
+           (fold max 0
+                 (map
+                  (lambda (def)
+                    (apply + 2 (string-length (command-name def))
+                           (* 3 (length (command-args def)))
+                           (map (compose string-length symbol->string)
+                                (command-args def))))
+                  (append server-options client-options special-options))))
+          (docspc 3))
+      (define (help-section option-group)
+        (for-each
+         (lambda (def)
+           (let ((col1 (apply string-append " -" (command-name def)
+                              (map (lambda (a)
+                                     (string-append " <" (symbol->string a) ">"))
+                                   (command-args def)))))
+             (display col1)
+             (when (command-doc def)
+               (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
+               (display (command-doc def)))
+             (newline)))
+         option-group))
+      (printf "mowedline version ~A, by John J. Foerch~%" version)
+      (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
+      (help-section special-options)
+      (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
+      (help-section server-options)
+      (printf "~%CLIENT OPTIONS~%~%")
+      (help-section client-options)
+      (newline)))
 
-(define (optype-internal-index optype)
-  (case optype
-    ((server-options) 0)
-    ((client-options) 1)
-    ((special-options) 2)))
+   ((version)
+    doc: "prints the version"
+    (printf "mowedline version ~A, by John J. Foerch~%" version))))
 
-(define (add-command! commands optype command)
-  (let ((k (optype-internal-index optype)))
-    (vector-set! commands k (cons command (vector-ref commands k)))))
 
-(define (get-server-commands commands)
-  (reverse (vector-ref commands 0)))
+(define-record call-info
+  name args thunk)
 
-(define (get-client-commands commands)
-  (reverse (vector-ref commands 1)))
+(define (mkcmd def args)
+  (let ((name (command-name def))
+        (body (command-body def)))
+    (make-call-info name args
+                    (lambda () (apply body args)))))
 
-(define (get-special-commands commands)
-  (reverse (vector-ref commands 2)))
+(define (parse-command-line input . command-groups)
+  (let ((out (map (lambda (x) (list)) command-groups)))
+    (define (loop input count)
+      (if (null? input)
+          (apply values out)
+          (let* ((opsym (first input))
+                 (input (rest input))
+                 (count (- count 1))
+                 (op (string-trim opsym #\-))
+                 (def #f)
+                 (group-index (list-index
+                               (lambda (group)
+                                 (set! def (find-command-def op group))
+                                 def)
+                               command-groups)))
+            (unless def
+              (error (sprintf "unexpected symbol ~S~%" opsym)))
+            (let ((narg (length (command-args def))))
+              (when (< count narg)
+                (error (sprintf "~A requires ~A arguments, but only ~A were given"
+                                op narg count)))
+              (let ((d (list-tail out group-index)))
+                (set-car! d (append! (car d) (list (mkcmd def (take input narg))))))
+              (loop (list-tail input narg) (- count narg))))))
+    (loop input (length input))))
 
-(define (mkcmd op args)
-  (cons op args))
-
-(define parse-command-line
-  (case-lambda
-   ((input count out)
-    (if (null? input)
-        out
-        (let* ((opsym (first input))
-               (input (rest input))
-               (count (- count 1))
-               (op (string-trim opsym #\-))
-               (def #f)
-               (optype (find (lambda (optype)
-                               (set! def (find-command-def op (eval optype)))
-                               def)
-                             '(server-options client-options special-options))))
-          (unless def
-            (error (sprintf "unexpected symbol ~S~%" opsym)))
-          (let ((narg (length (command-args def))))
-            (when (< count narg)
-              (error (sprintf "~A requires ~A arguments, but only ~A were given"
-                              op narg count)))
-            (let ((command (mkcmd op (take input narg))))
-              (add-command! out optype command)
-              (parse-command-line (list-tail input narg) (- count narg) out))))))
-   ((input . args) (parse-command-line input (length input) (make-commands-stucture)))))
-
-(let* ((commands (parse-command-line (command-line-arguments)))
-       (server-commands (get-server-commands commands))
-       (client-commands (get-client-commands commands))
-       (special-commands (get-special-commands commands)))
+(let-values (((server-commands client-commands special-commands)
+              (parse-command-line (command-line-arguments)
+                                  server-options
+                                  client-options
+                                  special-options)))
   (cond
    ((not (null? special-commands))
-    (let* ((cmd (first special-commands))
-           (def (find-command-def (car cmd) special-options)))
-      (apply (command-body def) (cdr cmd)))
+    (let ((cmd (first special-commands)))
+      ((call-info-thunk cmd)))
     (unless (and (null? (rest special-commands))
                  (null? server-commands)
                  (null? client-commands))
       (printf "~%Warning: the following commands were ignored:~%")
       (for-each
-       (lambda (x) (printf "  ~S~%" x))
+       (lambda (x) (printf "  ~S~%" (cons (call-info-name x) (call-info-args x))))
        (append! (rest special-commands) server-commands client-commands))))
    ((daemon-running?)
     (when (not (null? server-commands))
       (printf "Warning: the following commands were ignored because the daemon is already running:~%")
       (for-each
-       (lambda (x) (printf "  ~S~%" x))
+       (lambda (x) (printf "  ~S~%" (cons (call-info-name x) (call-info-args x))))
        server-commands))
     (start-client client-commands))
    (else
