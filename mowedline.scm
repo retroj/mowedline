@@ -229,25 +229,19 @@
 ;;; Window Property Utils
 ;;;
 
-(define (property-type property)
-  (vector-ref property 0))
-(define (property-format property)
-  (vector-ref property 1))
-(define (property-data property)
-  (vector-ref property 2))
-(define (property-count property)
-  (vector-ref property 3))
+(define-record window-property
+  type format data count)
 
 (define (make-atom-property atom-name)
   (let ((data (xinternatom *display* atom-name 0)))
     (let-location ((data unsigned-long data))
-      (vector "ATOM" 32
-              (location data)    
-              1))))
+      (make-window-property "ATOM" 32
+                            (location data)
+                            1))))
 
 (define (make-number-property number)
   (let-location ((data unsigned-long number))
-    (vector "CARDINAL" 32 (location data) 1)))
+    (make-window-property "CARDINAL" 32 (location data) 1)))
 
 (define (make-numbers-property numbers)
   (let* ((vec (list->u32vector numbers))
@@ -261,7 +255,7 @@
                   "C_return(lvec);")
                 vec len)))
     (set-finalizer! lvec free)
-    (vector "CARDINAL" 32 lvec len)))
+    (make-window-property "CARDINAL" 32 lvec len)))
 
 (define (make-text-property textp)
   (let ((tp (make-xtextproperty)))
@@ -274,20 +268,20 @@
 (define (window-property-set win key value)
   (xchangeproperty *display* win
                    (xinternatom *display* key 0)
-                   (xinternatom *display* (property-type value) 0)
-                   (property-format value)
+                   (xinternatom *display* (window-property-type value) 0)
+                   (window-property-format value)
                    PROPMODEREPLACE
-                   (property-data value)
-                   (property-count value)))
+                   (window-property-data value)
+                   (window-property-count value)))
 
 (define (window-property-append win key value)
   (xchangeproperty *display* win
                    (xinternatom *display* key 0)
-                   (xinternatom *display* (property-type value) 0)
-                   (property-format value)
+                   (xinternatom *display* (window-property-type value) 0)
+                   (window-property-format value)
                    PROPMODEAPPEND
-                   (property-data value)
-                   (property-count value)))
+                   (window-property-data value)
+                   (window-property-count value)))
 
 
 ;;;
@@ -533,33 +527,26 @@
         yes?))))
 
 
-(define-syntax make-command
+(define-record command
+  name args doc body)
+
+(define (command-name-string command-def)
+  (symbol->string (command-name command-def)))
+
+(define-syntax mk-command
   (syntax-rules (#:doc)
-    ((make-command (name . args) #:doc doc . body)
-     (vector '(name . args) doc (lambda args . body)))
-    ((make-command (name . args) . body)
-     (vector '(name . args) #f (lambda args . body)))))
+    ((mk-command (name . args) #:doc doc . body)
+     (make-command 'name 'args doc (lambda args . body)))
+    ((mk-command (name . args) . body)
+     (make-command 'name 'args #f (lambda args . body)))))
 
 (define-syntax make-command-group
   (syntax-rules ()
     ((make-command-group command ...)
-     (list (make-command . command) ...))))
-
-(define (command-name command-def)
-  (symbol->string (first (vector-ref command-def 0))))
-
-(define (command-args command-def)
-  (rest (vector-ref command-def 0)))
-
-(define (command-doc command-def)
-  (vector-ref command-def 1))
-
-(define (command-body command-def)
-  (vector-ref command-def 2))
-
+     (list (mk-command . command) ...))))
 
 (define (find-command-def name command-group)
-  (find (lambda (x) (equal? name (command-name x)))
+  (find (lambda (x) (equal? name (command-name-string x)))
         command-group))
 
 
@@ -614,7 +601,7 @@
            (fold max 0
                  (map
                   (lambda (def)
-                    (apply + 2 (string-length (command-name def))
+                    (apply + 2 (string-length (command-name-string def))
                            (* 3 (length (command-args def)))
                            (map (compose string-length symbol->string)
                                 (command-args def))))
@@ -623,7 +610,7 @@
       (define (help-section option-group)
         (for-each
          (lambda (def)
-           (let ((col1 (apply string-append " -" (command-name def)
+           (let ((col1 (apply string-append " -" (command-name-string def)
                               (map (lambda (a)
                                      (string-append " <" (symbol->string a) ">"))
                                    (command-args def)))))
@@ -651,7 +638,7 @@
   name args thunk)
 
 (define (mkcmd def args)
-  (let ((name (command-name def))
+  (let ((name (command-name-string def))
         (body (command-body def)))
     (make-call-info name args
                     (lambda () (apply body args)))))
