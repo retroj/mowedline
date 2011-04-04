@@ -560,7 +560,7 @@
 
 (define (find-command-def name command-group)
   (find (lambda (x) (equal? name (command-name x)))
-   command-group))
+        command-group))
 
 
 (define server-options
