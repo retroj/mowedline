@@ -30,7 +30,8 @@
      posix
      xlib)
 
-(use command-line)
+(include "command-line")
+(import command-line)
 
 (define version "0.1")
 
