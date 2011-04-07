@@ -60,6 +60,90 @@
 
 
 ;;;
+;;; Window Property Utils
+;;;
+
+(define-record window-property
+  type format data count)
+
+(define (make-atom-property atom-name)
+  (let ((data (xinternatom *display* atom-name 0)))
+    (let-location ((data unsigned-long data))
+      (make-window-property "ATOM" 32
+                            (location data)
+                            1))))
+
+(define (make-number-property number)
+  (let-location ((data unsigned-long number))
+    (make-window-property "CARDINAL" 32 (location data) 1)))
+
+(define (make-numbers-property numbers)
+  (let* ((vec (list->u32vector numbers))
+         (len (u32vector-length vec))
+         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
+                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
+                  "int i;"
+                  "for (i = 0; i < length; i++) {"
+                  "    lvec[i] = s[i];"
+                  "}"
+                  "C_return(lvec);")
+                vec len)))
+    (set-finalizer! lvec free)
+    (make-window-property "CARDINAL" 32 lvec len)))
+
+(define (make-text-property textp)
+  (let ((tp (make-xtextproperty)))
+    (set-xtextproperty-value! tp (make-locative textp))
+    (set-xtextproperty-encoding! tp XA_STRING)
+    (set-xtextproperty-format! tp 32)
+    (set-xtextproperty-nitems! tp 1)
+    tp))
+
+(define (window-property-set win key value)
+  (xchangeproperty *display* win
+                   (xinternatom *display* key 0)
+                   (xinternatom *display* (window-property-type value) 0)
+                   (window-property-format value)
+                   PROPMODEREPLACE
+                   (window-property-data value)
+                   (window-property-count value)))
+
+(define (window-property-append win key value)
+  (xchangeproperty *display* win
+                   (xinternatom *display* key 0)
+                   (xinternatom *display* (window-property-type value) 0)
+                   (window-property-format value)
+                   PROPMODEAPPEND
+                   (window-property-data value)
+                   (window-property-count value)))
+
+
+;;;
+;;; Other Utils
+;;;
+
+(define (make-rectangle x y width height)
+  (let ((r (make-xrectangle)))
+    (set-finalizer! r free-xrectangle)
+    (set-xrectangle-x! r x)
+    (set-xrectangle-y! r y)
+    (set-xrectangle-width! r width)
+    (set-xrectangle-height! r height)
+    r))
+
+(define (print-rectangle rect)
+  (let ((x (xrectangle-x rect))
+        (y (xrectangle-y rect))
+        (width (xrectangle-width rect))
+        (height (xrectangle-height rect)))
+    (printf "#<xrectangle ~A ~A ~A ~A>~%"
+            x y width height)))
+
+(define (get-font font-name)
+  (xloadqueryfont *display* font-name))
+
+
+;;;
 ;;; Window
 ;;;
 
@@ -228,65 +312,6 @@
 
 
 ;;;
-;;; Window Property Utils
-;;;
-
-(define-record window-property
-  type format data count)
-
-(define (make-atom-property atom-name)
-  (let ((data (xinternatom *display* atom-name 0)))
-    (let-location ((data unsigned-long data))
-      (make-window-property "ATOM" 32
-                            (location data)
-                            1))))
-
-(define (make-number-property number)
-  (let-location ((data unsigned-long number))
-    (make-window-property "CARDINAL" 32 (location data) 1)))
-
-(define (make-numbers-property numbers)
-  (let* ((vec (list->u32vector numbers))
-         (len (u32vector-length vec))
-         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
-                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
-                  "int i;"
-                  "for (i = 0; i < length; i++) {"
-                  "    lvec[i] = s[i];"
-                  "}"
-                  "C_return(lvec);")
-                vec len)))
-    (set-finalizer! lvec free)
-    (make-window-property "CARDINAL" 32 lvec len)))
-
-(define (make-text-property textp)
-  (let ((tp (make-xtextproperty)))
-    (set-xtextproperty-value! tp (make-locative textp))
-    (set-xtextproperty-encoding! tp XA_STRING)
-    (set-xtextproperty-format! tp 32)
-    (set-xtextproperty-nitems! tp 1)
-    tp))
-
-(define (window-property-set win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (window-property-type value) 0)
-                   (window-property-format value)
-                   PROPMODEREPLACE
-                   (window-property-data value)
-                   (window-property-count value)))
-
-(define (window-property-append win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (window-property-type value) 0)
-                   (window-property-format value)
-                   PROPMODEAPPEND
-                   (window-property-data value)
-                   (window-property-count value)))
-
-
-;;;
 ;;; Widgets
 ;;;
 
@@ -388,25 +413,8 @@
   (set! (slot-value widget 'text) (first params)))
 
 
-(define (make-rectangle x y width height)
-  (let ((r (make-xrectangle)))
-    (set-finalizer! r free-xrectangle)
-    (set-xrectangle-x! r x)
-    (set-xrectangle-y! r y)
-    (set-xrectangle-width! r width)
-    (set-xrectangle-height! r height)
-    r))
 
-(define (print-rectangle rect)
-  (let ((x (xrectangle-x rect))
-        (y (xrectangle-y rect))
-        (width (xrectangle-width rect))
-        (height (xrectangle-height rect)))
-    (printf "#<xrectangle ~A ~A ~A ~A>~%"
-            x y width height)))
 
-(define (get-font font-name)
-  (xloadqueryfont *display* font-name))
 
 
 (define (update . params)
