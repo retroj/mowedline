@@ -182,7 +182,7 @@
     (set! (slot-value window 'xwindow) xwindow)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window 'widgets))
-    (window-setup-widget-dimensions! window)
+    (window-update-widget-dimensions! window)
 
     (let ((attr (make-xsetwindowattributes)))
       (set-xsetwindowattributes-background_pixel! attr (xblackpixel *display* screen))
@@ -276,10 +276,10 @@
                      0 0 (slot-value window 'width)
                      (slot-value window 'height))))))
 
-;; window-setup-widget-dimensions! sets x coordinates and widths of all
+;; window-update-widget-dimensions! sets x coordinates and widths of all
 ;; widgets in window.  returns #f or a rectangle that needs to be redrawn.
 ;;
-(define (window-setup-widget-dimensions! window)
+(define (window-update-widget-dimensions! window)
   (let* ((widgets (slot-value window 'widgets))
          (widsum 0)
          (flexsum 0)
@@ -455,7 +455,7 @@
                    widget-or-name)))
     (widget-update widget params)
     (let ((window (slot-value widget 'window)))
-      (window-expose window (or (window-setup-widget-dimensions! window)
+      (window-expose window (or (window-update-widget-dimensions! window)
                                 (slot-value widget 'xrectangle))))
     #t))
 
