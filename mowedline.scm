@@ -259,6 +259,8 @@
                (xintersectregion r wreg out)
                (widget-draw widget out)))))
        widgets)
+      ;; if the entire window is not filled with widgets, we may need to
+      ;; clear the area to the right of the last widget.
       (let* ((lastwidget (last widgets))
              (wrect (slot-value lastwidget 'xrectangle))
              (p (+ (xrectangle-x wrect)
@@ -266,7 +268,6 @@
              (m (+ (xrectangle-x xrectangle)
                    (xrectangle-width xrectangle))))
         (when (> m p)
-          ;; blank the rectangle x=p, width=(m - p)
           (xcleararea *display* (slot-value window 'xwindow)
                       p 0 (- m p) (slot-value window 'height)
                       0)))))
@@ -277,7 +278,8 @@
                      (slot-value window 'height))))))
 
 ;; window-update-widget-dimensions! sets x coordinates and widths of all
-;; widgets in window.  returns #f or a rectangle that needs to be redrawn.
+;; widgets in window.  returns #f if nothing changed, otherwise an
+;; xrectangle of the changed area.
 ;;
 (define (window-update-widget-dimensions! window)
   (let* ((widgets (slot-value window 'widgets))
