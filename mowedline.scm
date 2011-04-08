@@ -558,24 +558,14 @@
   ;; dbus:discover-services prior to forking.  (it seems
   ;; to be impossible to fork a dbus program once it's
   ;; performed any communication.)
-  (call-with-values
-      (lambda ()
-        (process "dbus-send"
-                 (L "--type=method_call"
-                    "--print-reply"
-                    "--dest=org.freedesktop.DBus"
-                    "/org/freedesktop/DBus"
-                    "org.freedesktop.DBus.ListNames")))
-    (lambda (input output pid)
-      (define (read1)
-        (let ((line (read-line input)))
-          (cond ((eof-object? line) #f)
-                ((string-contains line "mowedline.server") #t)
-                (else (read1)))))
-      (let ((yes? (read1)))
-        (close-input-port input)
-        (close-output-port output)
-        yes?))))
+  (find
+   (lambda (line) (string-contains line "mowedline.server"))
+   (call-with-input-pipe
+    (string-join
+     (L "dbus-send" "--type=method_call" "--print-reply"
+        "--dest=org.freedesktop.DBus" "/org/freedesktop/DBus"
+        "org.freedesktop.DBus.ListNames"))
+    read-lines)))
 
 
 (define server-options
