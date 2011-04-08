@@ -19,6 +19,7 @@
 
 (use srfi-1
      srfi-4 ;; homogeneous numeric vectors
+     srfi-18 ;; threads
      srfi-69 ;; hash tables
      coops
      dbus
@@ -57,6 +58,8 @@
 (define *widgets* (make-hash-table test: equal?))
 
 (define *default-widgets* (list))
+
+(define *updates* (list))
 
 
 ;;;
@@ -416,7 +419,27 @@
   (set! (slot-value widget 'text) (first params)))
 
 
+;; Clock
+;;
+(define (clock-thread widget)
+  (lambda ()
+    (let loop ()
+      (let* ((time (seconds->local-time (current-seconds)))
+             (s (vector-ref time 0)))
+        (set! *updates*
+              (append! *updates*
+                       (L (lambda ()
+                            (update (slot-value widget 'name)
+                                    (time->string time (slot-value widget 'format)))))))
+        (thread-sleep! (- 60 s)))
+      (loop))))
 
+(define-class <clock> (<text-widget>)
+  ((format initform: "%a %b %e %H:%M %Z %Y")))
+
+(define-method (widget-set-window! (widget <clock>) (window <window>))
+  (call-next-method)
+  (thread-start! (make-thread (clock-thread widget))))
 
 
 
@@ -462,6 +485,8 @@
            ;;  (set! done #t))
            )))
       (dbus:poll-for-message)
+      (while (not (null? *updates*))
+        ((pop! *updates*)))
       (unless done
         (eventloop)))
 
