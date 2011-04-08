@@ -328,7 +328,7 @@
 (define-generic (widget-update widget params))
 
 (define-class <widget> ()
-  ((name)
+  ((name initform: #f)
    (flex initform: #f)
    (window)
    (gc)
@@ -336,9 +336,10 @@
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
-  (when (hash-table-exists? *widgets* (slot-value widget 'name))
-    (error "duplicate widget name"))
-  (hash-table-set! *widgets* (slot-value widget 'name) widget))
+  (and-let* ((name (slot-value widget 'name)))
+    (when (hash-table-exists? *widgets* name)
+      (error "duplicate widget name"))
+    (hash-table-set! *widgets* name widget)))
 
 (define-method (widget-set-window! (widget <widget>) (window <window>))
   (set! (slot-value widget 'window) window)
@@ -429,8 +430,7 @@
         (set! *updates*
               (append! *updates*
                        (L (lambda ()
-                            (update (slot-value widget 'name)
-                                    (time->string time (slot-value widget 'format)))))))
+                            (update widget (time->string time (slot-value widget 'format)))))))
         (thread-sleep! (- 60 s)))
       (loop))))
 
@@ -447,8 +447,10 @@
 ;;;
 
 (define (update . params)
-  (and-let* ((name (first params))
-             (widget (hash-table-ref/default *widgets* name #f)))
+  (and-let* ((w (first params))
+             (widget (if (string? w)
+                         (hash-table-ref/default *widgets* w #f)
+                         w)))
     (widget-update widget (cdr params))
     (let ((window (slot-value widget 'window)))
       (window-expose window (or (window-setup-widget-dimensions! window)
