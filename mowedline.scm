@@ -22,6 +22,7 @@
      srfi-18 ;; threads
      srfi-69 ;; hash tables
      coops
+     data-structures
      dbus
      environments
      filepath
@@ -59,7 +60,7 @@
 
 (define *default-widgets* (list))
 
-(define *updates* (list))
+(define *internal-events* (make-queue))
 
 
 ;;;
@@ -427,10 +428,11 @@
     (let loop ()
       (let* ((time (seconds->local-time (current-seconds)))
              (s (vector-ref time 0)))
-        (set! *updates*
-              (append! *updates*
-                       (L (lambda ()
-                            (update widget (time->string time (slot-value widget 'format)))))))
+        (queue-add!
+         *internal-events*
+         (lambda ()
+           (update widget
+                   (time->string time (slot-value widget 'format)))))
         (thread-sleep! (- 60 s)))
       (loop))))
 
@@ -490,8 +492,8 @@
            ;;  (set! done #t))
            )))
       (dbus:poll-for-message)
-      (while (not (null? *updates*))
-        ((pop! *updates*)))
+      (while (not (queue-empty? *internal-events*))
+        ((queue-remove! *internal-events*)))
       (unless done
         (eventloop)))
 
