@@ -448,12 +448,12 @@
 ;;; Server
 ;;;
 
-(define (update . params)
-  (and-let* ((w (first params))
-             (widget (if (string? w)
-                         (hash-table-ref/default *widgets* w #f)
-                         w)))
-    (widget-update widget (cdr params))
+(define (update widget-or-name . params)
+  (and-let*
+      ((widget (if (string? widget-or-name)
+                   (hash-table-ref/default *widgets* widget-or-name #f)
+                   widget-or-name)))
+    (widget-update widget params)
     (let ((window (slot-value widget 'window)))
       (window-expose window (or (window-setup-widget-dimensions! window)
                                 (slot-value widget 'xrectangle))))
