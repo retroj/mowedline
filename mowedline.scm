@@ -355,9 +355,9 @@
 
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
-  (if (not (slot-value widget 'flex))
-      1
-      #f))
+  (if (slot-value widget 'flex)
+      #f
+      1))
 
 ;; Text Widget
 ;;
