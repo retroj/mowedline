@@ -442,6 +442,9 @@
   (thread-start! (make-thread (clock-thread widget))))
 
 
+;;;
+;;; Server
+;;;
 
 (define (update . params)
   (and-let* ((name (first params))
@@ -534,6 +537,10 @@
     (eventloop))
   (xclosedisplay *display*))
 
+
+;;;
+;;; Client / Command Line
+;;;
 
 (define (start-client commands)
   (for-each (lambda (cmd) ((call-info-thunk cmd)))
