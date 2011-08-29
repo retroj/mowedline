@@ -31,7 +31,8 @@
      miscmacros
      posix
      xft
-     xlib)
+     xlib
+     xtypes)
 
 (include "command-line")
 (import command-line)
@@ -400,9 +401,10 @@
 
 (define-method (widget-preferred-width (widget <text-widget>))
   (if (not (slot-value widget 'flex))
-      (first (xft-text-extents *display* 
-                               (slot-value widget 'font)
-                               (slot-value widget 'text)))
+      (xglyphinfo-xoff
+       (xft-text-extents *display* 
+                         (slot-value widget 'font)
+                         (slot-value widget 'text)))
       #f))
 
 (define-method (widget-update (widget <text-widget>) params)
