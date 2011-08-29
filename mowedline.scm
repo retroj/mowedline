@@ -30,12 +30,13 @@
      lolevel
      miscmacros
      posix
+     xft
      xlib)
 
 (include "command-line")
 (import command-line)
 
-(define version "0.1")
+(define version "0.2pre")
 
 
 ;;;
@@ -51,8 +52,6 @@
 ;;;
 
 (define *display* #f)
-
-(define *screen* #f)
 
 (define *windows* (list))
 
@@ -143,9 +142,6 @@
     (printf "#<xrectangle ~A ~A ~A ~A>~%"
             x y width height)))
 
-(define (get-font font-name)
-  (xloadqueryfont *display* font-name))
-
 
 ;;;
 ;;; Window
@@ -161,6 +157,8 @@
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
+  (for-each (lambda (widget) (widget-set-window! widget window))
+            (slot-value window 'widgets))
   (let* ((screen (slot-value window 'screen))
          (shei (xdisplayheight *display* screen))
          (position (slot-value window 'position))
@@ -180,8 +178,7 @@
     (set! (slot-value window 'width) width)
     (set! (slot-value window 'height) height)
     (set! (slot-value window 'xwindow) xwindow)
-    (for-each (lambda (widget) (widget-set-window! widget window))
-              (slot-value window 'widgets))
+    (for-each widget-init (slot-value window 'widgets))
     (window-update-widget-dimensions! window)
 
     (let ((attr (make-xsetwindowattributes)))
@@ -328,14 +325,15 @@
 (define-generic (widget-preferred-height widget))
 (define-generic (widget-preferred-width widget))
 (define-generic (widget-set-window! widget window))
+(define-generic (widget-init widget))
 (define-generic (widget-update widget params))
 
 (define-class <widget> ()
   ((name initform: #f)
    (flex initform: #f)
    (window)
-   (gc)
-   (xrectangle initform: (make-rectangle 0 0 0 0))))
+   (xrectangle initform: (make-rectangle 0 0 0 0))
+   (background-color initform: (list 0 0 0 1))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -345,15 +343,12 @@
     (hash-table-set! *widgets* name widget)))
 
 (define-method (widget-set-window! (widget <widget>) (window <window>))
-  (set! (slot-value widget 'window) window)
-  (let ((gc (xcreategc *display*
-                       (slot-value window 'xwindow)
-                       0 #f)))
-    (xsetbackground *display* gc (xblackpixel *display* (slot-value window 'screen)))
-    (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen)))
-    (xsetfunction *display* gc GXCOPY)
-    (set! (slot-value widget 'gc) gc)
-    (set-xrectangle-height! (slot-value widget 'xrectangle) (slot-value window 'height))))
+  (set! (slot-value widget 'window) window))
+
+(define-method (widget-init (widget <widget>))
+  (let ((window (slot-value widget 'window)))
+    (set-xrectangle-height! (slot-value widget 'xrectangle)
+                            (slot-value window 'height))))
 
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
@@ -365,55 +360,48 @@
 ;;
 (define-class <text-widget> (<widget>)
   ((text initform: "")
-   (font initform: (or (get-font "9x15bold")
-                       (get-font "*")
-                       (error "no font")))))
+   (font initform: "9x15bold")
+   (color initform: (list 1 1 1 1))))
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
-  (xsetfont *display* (slot-value widget 'gc)
-            (xfontstruct-fid (slot-value widget 'font))))
+  (let ((font (slot-value widget 'font)))
+    (when (string? font)
+      (set! (slot-value widget 'font)
+            (xft-font-open/xlfd *display*
+                                (slot-value window 'screen)
+                                font)))))
 
 (define-method (widget-draw (widget <text-widget>) region)
   (let* ((window (slot-value widget 'window))
          (xwindow (slot-value window 'xwindow))
          (wrect (slot-value widget 'xrectangle))
-         (gc (slot-value widget 'gc))
+         (font (slot-value widget 'font))
          (x (xrectangle-x wrect))
          (text (slot-value widget 'text))
-         (baseline (xfontstruct-ascent (slot-value widget 'font))))
-
-    (let ((trect (make-rectangle x 0
-                                 (xtextwidth (slot-value widget 'font)
-                                             (slot-value widget 'text)
-                                             (string-length (slot-value widget 'text)))
-                                 (let ((font (slot-value widget 'font)))
-                                   (+ (xfontstruct-ascent font) (xfontstruct-descent font)))))
-          (text-region (xcreateregion))
-          (out (xcreateregion)))
-      (xunionrectwithregion trect out text-region)
-      (xsubtractregion region text-region out)
-      (xsetregion *display* gc out)
-      (xsetforeground *display* gc (xblackpixel *display* (slot-value window 'screen)))
-      (xfillrectangle *display* xwindow gc
-                      x 0 (xrectangle-width wrect) (xrectangle-height wrect))
-      (xsetforeground *display* gc (xwhitepixel *display* (slot-value window 'screen))))
-
-    (xsetregion *display* (slot-value widget 'gc) region)
-    (xdrawimagestring *display* xwindow gc
-                      x baseline text (string-length text))))
+         (baseline (xftfont-ascent font))
+         (color (ensure-list (slot-value widget 'color)))
+         (background-color (ensure-list (slot-value widget 'background-color)))
+         (visual (xdefaultvisual *display* (xdefaultscreen *display*)))
+         (colormap (xdefaultcolormap *display* (xdefaultscreen *display*)))
+         (draw (xftdraw-create *display* xwindow visual colormap)))
+    (xftdraw-set-clip! draw region)
+    (xft-draw-rect draw (apply make-xftcolor *display* visual colormap background-color)
+                   x 0 (xrectangle-width wrect) (xrectangle-height wrect))
+    (xft-draw-string draw font (apply make-xftcolor *display* visual colormap color)
+                     x baseline text)))
 
 (define-method (widget-preferred-height (widget <text-widget>))
   ;; i find even common fonts extend a pixel lower than their
   ;; declared descent.  tsk tsk.
   (let ((font (slot-value widget 'font)))
-    (+ (xfontstruct-ascent font) (xfontstruct-descent font) 2)))
+    (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
   (if (not (slot-value widget 'flex))
-      (xtextwidth (slot-value widget 'font)
-                  (slot-value widget 'text)
-                  (string-length (slot-value widget 'text)))
+      (first (xft-text-extents *display* 
+                               (slot-value widget 'font)
+                               (slot-value widget 'text)))
       #f))
 
 (define-method (widget-update (widget <text-widget>) params)
@@ -441,7 +429,7 @@
 (define-class <clock> (<text-widget>)
   ((format initform: "%a %b %e %H:%M %Z %Y")))
 
-(define-method (widget-set-window! (widget <clock>) (window <window>))
+(define-method (widget-init (widget <clock>))
   (call-next-method)
   (thread-start! (make-thread (clock-thread widget))))
 
