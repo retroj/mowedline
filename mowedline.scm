@@ -153,6 +153,7 @@
    (position initform: 'top)
    (height initform: #f)
    (width initform: #f)
+   (baseline initform: #f)
    (widgets initform: (list))
    (xwindow)))
 
@@ -179,6 +180,9 @@
     (assert xwindow)
     (set! (slot-value window 'width) width)
     (set! (slot-value window 'height) height)
+    (set! (slot-value window 'baseline)
+          (fold max 1 (map widget-preferred-baseline
+                           (slot-value window 'widgets))))
     (set! (slot-value window 'xwindow) xwindow)
     (for-each widget-init (slot-value window 'widgets))
     (window-update-widget-dimensions! window)
@@ -326,6 +330,7 @@
 (define-generic (widget-draw widget region))
 (define-generic (widget-preferred-height widget))
 (define-generic (widget-preferred-width widget))
+(define-generic (widget-preferred-baseline widget))
 (define-generic (widget-set-window! widget window))
 (define-generic (widget-init widget))
 (define-generic (widget-update widget params))
@@ -352,6 +357,7 @@
     (set-xrectangle-height! (slot-value widget 'xrectangle)
                             (slot-value window 'height))))
 
+(define-method (widget-preferred-baseline (widget <widget>)) 1)
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
   (if (slot-value widget 'flex)
@@ -382,7 +388,7 @@
          (font (slot-value widget 'font))
          (x (xrectangle-x wrect))
          (text (slot-value widget 'text))
-         (baseline (xftfont-ascent font))
+         (baseline (slot-value window 'baseline))
          (color (ensure-list (slot-value widget 'color)))
          (background-color (ensure-list (slot-value widget 'background-color)))
          (visual (xdefaultvisual *display* (xdefaultscreen *display*)))
@@ -393,6 +399,9 @@
                    x 0 (xrectangle-width wrect) (xrectangle-height wrect))
     (xft-draw-string draw font (apply make-xftcolor *display* visual colormap color)
                      x baseline text)))
+
+(define-method (widget-preferred-baseline (widget <text-widget>))
+  (xftfont-ascent (slot-value widget 'font)))
 
 (define-method (widget-preferred-height (widget <text-widget>))
   ;; i find even common fonts extend a pixel lower than their
