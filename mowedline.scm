@@ -165,7 +165,8 @@
          (position (slot-value window 'position))
          (width (or (slot-value window 'width) (xdisplaywidth *display* screen)))
          (height (or (slot-value window 'height)
-                     (fold max 1 (map widget-preferred-height (slot-value window 'widgets)))))
+                     (fold max 1 (map widget-preferred-height
+                                      (slot-value window 'widgets)))))
          (window-top (case position
                        ((bottom) (- shei height))
                        (else 0)))
