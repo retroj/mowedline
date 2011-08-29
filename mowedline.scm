@@ -361,7 +361,8 @@
 (define-class <text-widget> (<widget>)
   ((text initform: "")
    (font initform: "mono-10:bold")
-   (color initform: (list 1 1 1 1))))
+   (color initform: (list 1 1 1 1))
+   (format initform: identity)))
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
@@ -405,10 +406,8 @@
       #f))
 
 (define-method (widget-update (widget <text-widget>) params)
-  ;; after update, the caller will call draw.  but efficiency could be
-  ;; gained if the caller knew if our width changed, thus determining how
-  ;; much of the window needed to be redrawn.
-  (set! (slot-value widget 'text) (first params)))
+  (set! (slot-value widget 'text)
+        ((slot-value widget 'format) (first params))))
 
 
 ;; Clock
@@ -422,12 +421,12 @@
          *internal-events*
          (lambda ()
            (update widget
-                   (time->string time (slot-value widget 'format)))))
+                   (time->string time (slot-value widget 'time-format)))))
         (thread-sleep! (- 60 s)))
       (loop))))
 
 (define-class <clock> (<text-widget>)
-  ((format initform: "%a %b %e %H:%M %Z %Y")))
+  ((time-format initform: "%a %b %e %H:%M %Z %Y")))
 
 (define-method (widget-init (widget <clock>))
   (call-next-method)
