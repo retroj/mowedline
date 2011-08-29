@@ -360,7 +360,7 @@
 ;;
 (define-class <text-widget> (<widget>)
   ((text initform: "")
-   (font initform: "9x15bold")
+   (font initform: "mono-10:bold")
    (color initform: (list 1 1 1 1))))
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
@@ -368,7 +368,7 @@
   (let ((font (slot-value widget 'font)))
     (when (string? font)
       (set! (slot-value widget 'font)
-            (xft-font-open/xlfd *display*
+            (xft-font-open/name *display*
                                 (slot-value window 'screen)
                                 font)))))
 
