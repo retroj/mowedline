@@ -330,12 +330,14 @@
 (define-generic (widget-init widget))
 (define-generic (widget-update widget params))
 
+(define widget-background-color (make-parameter (list 0 0 0 1)))
+
 (define-class <widget> ()
   ((name initform: #f)
    (flex initform: #f)
    (window)
    (xrectangle initform: (make-xrectangle 0 0 0 0))
-   (background-color initform: (list 0 0 0 1))))
+   (background-color initform: (widget-background-color))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -361,11 +363,15 @@
 
 ;; Text Widget
 ;;
+(define text-widget-font (make-parameter "mono-10:bold"))
+(define text-widget-color (make-parameter (list 1 1 1 1)))
+(define text-widget-format (make-parameter identity))
+
 (define-class <text-widget> (<widget>)
   ((text initform: "")
-   (font initform: "mono-10:bold")
-   (color initform: (list 1 1 1 1))
-   (format initform: identity)))
+   (font initform: (text-widget-font))
+   (color initform: (text-widget-color))
+   (format initform: (text-widget-format))))
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
