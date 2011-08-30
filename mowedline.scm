@@ -31,7 +31,9 @@
      miscmacros
      posix
      xft
-     xlib
+     (except xlib make-xrectangle
+                  xrectangle-x xrectangle-y
+                  xrectangle-width xrectangle-height)
      xtypes)
 
 (include "command-line")
@@ -125,15 +127,6 @@
 ;;;
 ;;; Other Utils
 ;;;
-
-(define (make-rectangle x y width height)
-  (let ((r (make-xrectangle)))
-    (set-finalizer! r free-xrectangle)
-    (set-xrectangle-x! r x)
-    (set-xrectangle-y! r y)
-    (set-xrectangle-width! r width)
-    (set-xrectangle-height! r height)
-    r))
 
 (define (print-rectangle rect)
   (let ((x (xrectangle-x rect))
@@ -276,7 +269,7 @@
                       0)))))
     ((window)
      (window-expose window
-                    (make-rectangle
+                    (make-xrectangle
                      0 0 (slot-value window 'width)
                      (slot-value window 'height))))))
 
@@ -319,7 +312,7 @@
      widgets
      wids)
     (if rmin
-        (make-rectangle rmin 0 (- rmax rmin) (slot-value window 'height))
+        (make-xrectangle rmin 0 (- rmax rmin) (slot-value window 'height))
         #f)))
 
 
@@ -339,7 +332,7 @@
   ((name initform: #f)
    (flex initform: #f)
    (window)
-   (xrectangle initform: (make-rectangle 0 0 0 0))
+   (xrectangle initform: (make-xrectangle 0 0 0 0))
    (background-color initform: (list 0 0 0 1))))
 
 (define-method (initialize-instance (widget <widget>))
@@ -488,7 +481,7 @@
                    (y (xexposeevent-y event))
                    (width (xexposeevent-width event))
                    (height (xexposeevent-height event)))
-              (window-expose window (make-rectangle x y width height))))
+              (window-expose window (make-xrectangle x y width height))))
            ;; ((= type BUTTONPRESS)
            ;;  (set! done #t))
            )))
