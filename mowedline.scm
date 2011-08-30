@@ -227,6 +227,8 @@
       (let-location ((atm unsigned-long d-atom))
         (xsetwmprotocols *display* xwindow (location atm) 1)))
 
+    (xlowerwindow *display* xwindow)
+
     (push! window *windows*)))
 
 (define window-expose
