@@ -350,7 +350,7 @@
     (set-xrectangle-height! (slot-value widget 'xrectangle)
                             (slot-value window 'height))))
 
-(define-method (widget-preferred-baseline (widget <widget>)) 1)
+(define-method (widget-preferred-baseline (widget <widget>)) 0)
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
   (if (slot-value widget 'flex)
