@@ -382,18 +382,32 @@
          (wrect (slot-value widget 'xrectangle))
          (font (slot-value widget 'font))
          (x (xrectangle-x wrect))
-         (text (slot-value widget 'text))
          (baseline (slot-value window 'baseline))
-         (color (ensure-list (slot-value widget 'color)))
-         (background-color (ensure-list (slot-value widget 'background-color)))
          (visual (xdefaultvisual *display* (xdefaultscreen *display*)))
          (colormap (xdefaultcolormap *display* (xdefaultscreen *display*)))
          (draw (xftdraw-create *display* xwindow visual colormap)))
-    (xftdraw-set-clip! draw region)
-    (xft-draw-rect draw (apply make-xftcolor *display* visual colormap background-color)
-                   x 0 (xrectangle-width wrect) (xrectangle-height wrect))
-    (xft-draw-string draw font (apply make-xftcolor *display* visual colormap color)
-                     x baseline text)))
+    (define (make-color c)
+      (apply make-xftcolor *display* visual colormap
+             (ensure-list c)))
+    (let ((color (make-color (slot-value widget 'color)))
+          (background-color (make-color (slot-value widget 'background-color))))
+      (xftdraw-set-clip! draw region)
+      (xft-draw-rect draw background-color x 0
+                     (xrectangle-width wrect)
+                     (xrectangle-height wrect))
+      (let walk ((term (slot-value widget 'text))
+                 (colors (list color)))
+        (cond
+         ((string? term)
+          (xft-draw-string draw font (first colors) x baseline term)
+          (inc! x (xglyphinfo-xoff (xft-text-extents *display* font term))))
+         ((pair? term)
+          (cond
+           ((eq? 'color (first term))
+            (walk (cddr term) (cons (make-color (second term)) colors)))
+           (else
+            (walk (first term) colors)
+            (walk (rest term) colors)))))))))
 
 (define-method (widget-preferred-baseline (widget <text-widget>))
   (xftfont-ascent (slot-value widget 'font)))
@@ -405,16 +419,29 @@
     (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
-  (if (not (slot-value widget 'flex))
+  (if (slot-value widget 'flex)
+      #f
       (xglyphinfo-xoff
        (xft-text-extents *display* 
                          (slot-value widget 'font)
-                         (slot-value widget 'text)))
-      #f))
+                         (text-widget-raw-text widget)))))
 
 (define-method (widget-update (widget <text-widget>) params)
   (set! (slot-value widget 'text)
         ((slot-value widget 'format) (first params))))
+
+(define (text-widget-raw-text widget)
+  (let walk ((term (slot-value widget 'text)))
+    (cond
+     ((null? term) "")
+     ((string? term) term)
+     ((and (pair? term) (eq? 'color (first term)))
+      (walk (cddr term)))
+     ((pair? term)
+      (string-append
+       (walk (first term))
+       (walk (rest term))))
+     (else ""))))
 
 
 ;; Clock
