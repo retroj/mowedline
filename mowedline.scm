@@ -367,6 +367,8 @@
 
 (define-method (widget-set-window! (widget <text-widget>) (window <window>))
   (call-next-method)
+  ;; initialize the font here so that the preferred height of the widget
+  ;; can be queried as early as possible.
   (let ((font (slot-value widget 'font)))
     (when (string? font)
       (set! (slot-value widget 'font)
