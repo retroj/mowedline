@@ -544,7 +544,8 @@
     (when (null? *windows*)
       (when (null? *default-widgets*)
         (push! (make <text-widget>
-                 'name "default")
+                 'name "default"
+                 'flex 1)
                *default-widgets*))
       (make <window>
         'widgets (reverse! *default-widgets*)))
@@ -611,8 +612,12 @@
    ((clock)
     (push! (make <clock>)
            *default-widgets*))
-   ;;(make-command (bg color) 1)
-   ;;(make-command (fg color) 1)
+   ((bg color)
+    doc: "set default background-color"
+    (widget-background-color color))
+   ((fg color)
+    doc: "set the default text color"
+    (text-widget-color color))
    ;;(make-command (screen screen) 1)
    ;;(make-command (position position) 1)
    ))
