@@ -608,6 +608,9 @@
     (push! (make <text-widget>
              'name name)
            *default-widgets*))
+   ((clock)
+    (push! (make <clock>)
+           *default-widgets*))
    ;;(make-command (bg color) 1)
    ;;(make-command (fg color) 1)
    ;;(make-command (screen screen) 1)
