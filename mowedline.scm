@@ -138,6 +138,14 @@
 
 
 ;;;
+;;; Button
+;;;
+
+(define-record button
+  xrectangle thunk)
+
+
+;;;
 ;;; Window
 ;;;
 (define window-position (make-parameter 'top))
@@ -318,6 +326,15 @@
         (make-xrectangle rmin 0 (- rmax rmin) (slot-value window 'height))
         #f)))
 
+(define (window-widget-at-position window x)
+  (find
+   (lambda (widget)
+     (let ((wrect (slot-value widget 'xrectangle)))
+       (and (>= x (xrectangle-x wrect))
+            (< x (+ (xrectangle-x wrect)
+                    (xrectangle-width wrect))))))
+   (slot-value window 'widgets)))
+
 
 ;;;
 ;;; Widgets
@@ -339,7 +356,8 @@
    (flex initform: (widget-flex))
    (window)
    (xrectangle initform: (make-xrectangle 0 0 0 0))
-   (background-color initform: (widget-background-color))))
+   (background-color initform: (widget-background-color))
+   (buttons initform: (list))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -362,6 +380,16 @@
   (if (slot-value widget 'flex)
       #f
       1))
+
+(define (widget-button-at-position widget x)
+  (find
+   (lambda (button)
+     (let ((rect (button-xrectangle button)))
+       (and (>= x (xrectangle-x rect))
+            (< x (+ (xrectangle-x rect)
+                    (xrectangle-width rect))))))
+   (slot-value widget 'buttons)))
+
 
 ;; Text Widget
 ;;
@@ -399,6 +427,7 @@
     (define (make-color c)
       (apply make-xftcolor *display* visual colormap
              (ensure-list c)))
+    (set! (slot-value widget 'buttons) (list))
     (let ((color (make-color (slot-value widget 'color)))
           (background-color (make-color (slot-value widget 'background-color))))
       (xftdraw-set-clip! draw region)
@@ -413,6 +442,15 @@
           (inc! x (xglyphinfo-xoff (xft-text-extents *display* font term))))
          ((pair? term)
           (cond
+           ((eq? 'button (first term))
+            (let ((thunk (second term))
+                  (buttonx1 x))
+              (walk (cddr term) colors)
+              (push! (make-button (make-xrectangle buttonx1 0
+                                                   (- x buttonx1)
+                                                   (xrectangle-height wrect))
+                                  thunk)
+                     (slot-value widget 'buttons))))
            ((eq? 'color (first term))
             (walk (cddr term) (cons (make-color (second term)) colors)))
            (else
@@ -445,7 +483,8 @@
     (cond
      ((null? term) "")
      ((string? term) term)
-     ((and (pair? term) (eq? 'color (first term)))
+     ((and (pair? term)
+           (memq (first term) '(color button)))
       (walk (cddr term)))
      ((pair? term)
       (string-append
@@ -558,9 +597,16 @@
                    (width (xexposeevent-width event))
                    (height (xexposeevent-height event)))
               (window-expose window (make-xrectangle x y width height))))
-           ;; ((= type BUTTONPRESS)
-           ;;  (set! done #t))
-           )))
+           ((= type BUTTONPRESS)
+            (and-let* ((xwindow (xexposeevent-window event))
+                       (window (find (lambda (win)
+                                       (equal? (slot-value win 'xwindow) xwindow))
+                                     *windows*))
+                       (widget (window-widget-at-position
+                                window (xbuttonpressedevent-x event)))
+                       (button (widget-button-at-position
+                                widget (xbuttonpressedevent-x event))))
+              ((eval (button-thunk button))))))))
       (dbus:poll-for-message)
       (while (not (queue-empty? *internal-events*))
         ((queue-remove! *internal-events*)))
