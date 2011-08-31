@@ -331,10 +331,11 @@
 (define-generic (widget-update widget params))
 
 (define widget-background-color (make-parameter (list 0 0 0 1)))
+(define widget-flex (make-parameter #f))
 
 (define-class <widget> ()
   ((name initform: #f)
-   (flex initform: #f)
+   (flex initform: (widget-flex))
    (window)
    (xrectangle initform: (make-xrectangle 0 0 0 0))
    (background-color initform: (widget-background-color))))
@@ -655,6 +656,9 @@
    ((fg color)
     doc: "set the default text color"
     (text-widget-color color))
+   ((flex value)
+    doc: "set the default flex value"
+    (widget-flex value))
    ;;(make-command (screen screen) 1)
    ;;(make-command (position position) 1)
    ))
