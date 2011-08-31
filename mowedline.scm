@@ -140,10 +140,11 @@
 ;;;
 ;;; Window
 ;;;
+(define window-position (make-parameter 'top))
 
 (define-class <window> ()
   ((screen initform: (xdefaultscreen *display*))
-   (position initform: 'top)
+   (position initform: (window-position))
    (height initform: #f)
    (width initform: #f)
    (baseline initform: #f)
@@ -660,8 +661,9 @@
     doc: "set the default flex value"
     (widget-flex value))
    ;;(make-command (screen screen) 1)
-   ;;(make-command (position position) 1)
-   ))
+   ((position value)
+    doc: "set the default window position (top or bottom)"
+    (window-position (string->symbol value)))))
 
 
 (define client-options
