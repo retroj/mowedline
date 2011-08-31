@@ -475,6 +475,43 @@
   (thread-start! (make-thread (clock-thread widget))))
 
 
+;; Flags
+;;
+(define-class <flags> (<text-widget>)
+  ((flags initform: '())
+   (curflags initform: '())
+   (text initform: '())))
+
+(define-method (widget-update (widget <flags>) params)
+  (let* ((changes (first params))
+         (op (cond ((string-prefix? "+" changes) 'add)
+                   ((string-prefix? "-" changes) 'remove)
+                   (else 'replace)))
+         (tokenize-start (if (eq? 'replace op) 0 1))
+         (tokens (string-tokenize changes char-set:graphic tokenize-start)))
+    (case op
+      ((add)
+       (set! (slot-value widget 'curflags)
+             (lset-union equal? (slot-value widget 'curflags) tokens)))
+      ((remove)
+       (set! (slot-value widget 'curflags)
+             (lset-difference equal? (slot-value widget 'curflags) tokens)))
+      ((replace)
+       (set! (slot-value widget 'curflags) tokens)))
+    (let ((curflags (slot-value widget 'curflags)))
+      (set!
+       (slot-value widget 'text)
+       ((slot-value widget 'format)
+        (fold (lambda (flagdef result)
+                (let ((flag (first flagdef))
+                      (r (rest flagdef)))
+                  (if (member flag curflags)
+                      (cons r result)
+                      result)))
+              '()
+              (reverse (slot-value widget 'flags))))))))
+
+
 ;;;
 ;;; Server
 ;;;
