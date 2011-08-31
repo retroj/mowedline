@@ -528,9 +528,11 @@
       (unless done
         (eventloop)))
 
-    (if* (find file-read-access?
-               (L (filepath:join-path (L "~" ".mowedline"))
-                  (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))
+    (if* (and (not (find (lambda (cmd) (equal? "q" (call-info-name cmd)))
+                         commands))
+              (find file-read-access?
+                    (L (filepath:join-path (L "~" ".mowedline"))
+                       (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))
          (let ((env (environment-copy (interaction-environment) #t)))
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
@@ -599,6 +601,9 @@
 
 (define server-options
   (make-command-group
+   ((q)
+    doc: "bypass .mowedline"
+    1)
    ((text-widget name)
     (push! (make <text-widget>
              'name name)
