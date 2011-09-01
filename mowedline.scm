@@ -124,74 +124,78 @@
                    (window-property-count value)))
 
 
-(define (switch-to-desktop name)
-  (define (switch-to-desktop/number desktop)
-    (let ((root (xrootwindow *display* (xdefaultscreen *display*)))
-          (event-mask (bitwise-ior SUBSTRUCTURENOTIFYMASK
-                                   SUBSTRUCTUREREDIRECTMASK))
-          (event (make-xclientmessageevent)))
-      (set-xclientmessageevent-type! event CLIENTMESSAGE)
-      (set-xclientmessageevent-serial! event 0)
-      (set-xclientmessageevent-send_event! event 1)
-      (set-xclientmessageevent-display! event *display*)
-      (set-xclientmessageevent-window! event root)
-      (set-xclientmessageevent-message_type!
-       event (xinternatom *display* "_NET_CURRENT_DESKTOP" 0))
-      (set-xclientmessageevent-format! event 32)
-      (define make-event-data-l
-        (foreign-lambda* void (((c-pointer long) data_l)
-                               (long l0) (long l1) (long l2)
-                               (long l3) (long l4))
-          "data_l[0] = l0; data_l[1] = l1;"
-          "data_l[2] = l2; data_l[3] = l3;"
-          "data_l[4] = l4;"))
-      (make-event-data-l (xclientmessageevent-data-l event)
-                         desktop (current-seconds) 0 0 0)
-      (xsendevent *display* root 0 event-mask event)))
-
+(define (switch-to-desktop/number desktop)
   (let ((root (xrootwindow *display* (xdefaultscreen *display*)))
-        (MAX_PROPERTY_VALUE_LEN 4096)
-        (property (xinternatom *display* "_NET_DESKTOP_NAMES" 0))
-        (req_type (xinternatom *display* "UTF8_STRING" 0)))
-    (let-location ((xa_ret_type unsigned-long)
-                   (ret_format int)
-                   (ret_nitems unsigned-long)
-                   (ret_bytes_after unsigned-long)
-                   (ret_prop unsigned-c-string*))
-      (xgetwindowproperty *display*
-                          root
-                          property
-                          0
-                          (/ MAX_PROPERTY_VALUE_LEN 4)
-                          0
-                          req_type
-                          (location xa_ret_type)
-                          (location ret_format)
-                          (location ret_nitems)
-                          (location ret_bytes_after)
-                          (location ret_prop))
-      (assert (= req_type xa_ret_type))
-      (define find-workspace
-        (foreign-lambda* int ((unsigned-c-string target)
-                              ((c-pointer unsigned-c-string) names)
-                              (unsigned-long nitems))
-          "int i, d = 0, atstart = 1;"
-          "for (i = 0; i < nitems; i++) {"
-          "    if (atstart) {"
-          "        if (0 == strcmp(target, &names[0][i])) {"
-          "            C_return(d);"
-          "        }"
-          "        atstart = 0;"
-          "    }"
-          "    if (names[0][i] == 0) {"
-          "        atstart = 1;"
-          "        d++;"
-          "    }"
-          "}"
-          "C_return(-1);"))
-      (let ((desktop (find-workspace name (location ret_prop) ret_nitems)))
-        (when (> desktop -1)
-          (switch-to-desktop/number desktop))))))
+        (event-mask (bitwise-ior SUBSTRUCTURENOTIFYMASK
+                                 SUBSTRUCTUREREDIRECTMASK))
+        (event (make-xclientmessageevent)))
+    (set-xclientmessageevent-type! event CLIENTMESSAGE)
+    (set-xclientmessageevent-serial! event 0)
+    (set-xclientmessageevent-send_event! event 1)
+    (set-xclientmessageevent-display! event *display*)
+    (set-xclientmessageevent-window! event root)
+    (set-xclientmessageevent-message_type!
+     event (xinternatom *display* "_NET_CURRENT_DESKTOP" 0))
+    (set-xclientmessageevent-format! event 32)
+    (define make-event-data-l
+      (foreign-lambda* void (((c-pointer long) data_l)
+                             (long l0) (long l1) (long l2)
+                             (long l3) (long l4))
+        "data_l[0] = l0; data_l[1] = l1;"
+        "data_l[2] = l2; data_l[3] = l3;"
+        "data_l[4] = l4;"))
+    (make-event-data-l (xclientmessageevent-data-l event)
+                       desktop (current-seconds) 0 0 0)
+    (xsendevent *display* root 0 event-mask event)))
+
+
+(define (switch-to-desktop desktop)
+  (cond
+   ((number? desktop) (switch-to-desktop/number desktop))
+   ((string? desktop)
+    (let ((root (xrootwindow *display* (xdefaultscreen *display*)))
+          (MAX_PROPERTY_VALUE_LEN 4096)
+          (property (xinternatom *display* "_NET_DESKTOP_NAMES" 0))
+          (req_type (xinternatom *display* "UTF8_STRING" 0)))
+      (let-location ((xa_ret_type unsigned-long)
+                     (ret_format int)
+                     (ret_nitems unsigned-long)
+                     (ret_bytes_after unsigned-long)
+                     (ret_prop unsigned-c-string*))
+        (xgetwindowproperty *display*
+                            root
+                            property
+                            0
+                            (/ MAX_PROPERTY_VALUE_LEN 4)
+                            0
+                            req_type
+                            (location xa_ret_type)
+                            (location ret_format)
+                            (location ret_nitems)
+                            (location ret_bytes_after)
+                            (location ret_prop))
+        (assert (= req_type xa_ret_type))
+        (define find-desktop
+          (foreign-lambda* int ((unsigned-c-string target)
+                                ((c-pointer unsigned-c-string) names)
+                                (unsigned-long nitems))
+            "int i, d = 0, atstart = 1;"
+            "for (i = 0; i < nitems; i++) {"
+            "    if (atstart) {"
+            "        if (0 == strcmp(target, &names[0][i])) {"
+            "            C_return(d);"
+            "        }"
+            "        atstart = 0;"
+            "    }"
+            "    if (names[0][i] == 0) {"
+            "        atstart = 1;"
+            "        d++;"
+            "    }"
+            "}"
+            "C_return(-1);"))
+        (let ((desktop-number (find-desktop desktop (location ret_prop) ret_nitems)))
+          (when (> desktop-number -1)
+            (switch-to-desktop/number desktop-number))))))))
 
 
 
