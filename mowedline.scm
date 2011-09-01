@@ -162,12 +162,8 @@
                      (ret_nitems unsigned-long)
                      (ret_bytes_after unsigned-long)
                      (ret_prop unsigned-c-string*))
-        (xgetwindowproperty *display*
-                            root
-                            property
-                            0
-                            (/ MAX_PROPERTY_VALUE_LEN 4)
-                            0
+        (xgetwindowproperty *display* root property
+                            0 (/ MAX_PROPERTY_VALUE_LEN 4) 0
                             req_type
                             (location xa_ret_type)
                             (location ret_format)
@@ -182,9 +178,8 @@
             "int i, d = 0, atstart = 1;"
             "for (i = 0; i < nitems; i++) {"
             "    if (atstart) {"
-            "        if (0 == strcmp(target, &names[0][i])) {"
+            "        if (0 == strcmp(target, &names[0][i]))"
             "            C_return(d);"
-            "        }"
             "        atstart = 0;"
             "    }"
             "    if (names[0][i] == 0) {"
