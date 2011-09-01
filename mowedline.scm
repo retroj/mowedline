@@ -177,7 +177,7 @@
                               (unsigned-long nitems))
           "int i, d = 0, atstart = 1;"
           "for (i = 0; i < nitems; i++) {"
-          "    if (atstart && names[0][i]) {"
+          "    if (atstart) {"
           "        if (0 == strcmp(target, &names[0][i])) {"
           "            C_return(d);"
           "        }"
