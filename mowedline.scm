@@ -157,7 +157,7 @@
                    (ret_format int)
                    (ret_nitems unsigned-long)
                    (ret_bytes_after unsigned-long)
-                   (ret_prop unsigned-c-string))
+                   (ret_prop unsigned-c-string*))
       (xgetwindowproperty *display*
                           root
                           property
@@ -169,7 +169,7 @@
                           (location ret_format)
                           (location ret_nitems)
                           (location ret_bytes_after)
-                          (location ret_prop)) ;;need to xfree ret_prop, but it's the actual result
+                          (location ret_prop))
       (assert (= req_type xa_ret_type))
       (define find-workspace
         (foreign-lambda* int ((unsigned-c-string target)
