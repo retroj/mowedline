@@ -639,6 +639,8 @@
     #t))
 
 
+(define bypass-startup-script (make-parameter #f))
+
 (define (start-server commands input output)
   (file-close input)
   (set! *display* (xopendisplay #f))
@@ -683,8 +685,15 @@
       (unless done
         (eventloop)))
 
-    (if* (and (not (find (lambda (cmd) (equal? "q" (call-info-name cmd)))
-                         commands))
+    ;; process server commands
+    (for-each (lambda (cmd) ((call-info-thunk cmd)))
+              commands)
+
+    (unless (null? *default-widgets*)
+      (make <window> 'widgets (reverse! *default-widgets*))
+      (set! *default-widgets* (list)))
+
+    (if* (and (not (bypass-startup-script))
               (find file-read-access?
                     (L (filepath:join-path (L "~" ".mowedline"))
                        (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))
@@ -692,18 +701,12 @@
            (environment-extend! env 'make make)
            (load it (lambda (form) (eval form env)))))
 
-    ;; process server commands
-    (for-each (lambda (cmd) ((call-info-thunk cmd)))
-              commands)
-
     (when (null? *windows*)
-      (when (null? *default-widgets*)
-        (push! (make <text-widget>
-                 'name "default"
-                 'flex 1)
-               *default-widgets*))
       (make <window>
-        'widgets (reverse! *default-widgets*)))
+        'widgets
+        (L (make <text-widget>
+             'name "default"
+             'flex 1))))
 
     (let ((dbus-context
            (dbus:make-context service: 'mowedline.server
@@ -759,7 +762,7 @@
   (make-command-group
    ((q)
     doc: "bypass .mowedline"
-    1)
+    (bypass-startup-script #t))
    ((text-widget name)
     (push! (make <text-widget>
              'name name)
