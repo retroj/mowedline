@@ -782,7 +782,11 @@
    ;;(make-command (screen screen) 1)
    ((position value)
     doc: "set the default window position (top or bottom)"
-    (window-position (string->symbol value)))))
+    (window-position (string->symbol value)))
+   ((window)
+    doc: "make a window containing the foregoing widgets"
+    (make <window> 'widgets (reverse! *default-widgets*))
+    (set! *default-widgets* (list)))))
 
 
 (define client-options
