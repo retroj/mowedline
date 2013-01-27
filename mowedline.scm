@@ -219,6 +219,7 @@
 ;;; Window
 ;;;
 (define window-position (make-parameter 'top))
+(define window-lower (make-parameter #t))
 
 (define-class <window> ()
   ((screen initform: (xdefaultscreen *display*))
@@ -306,7 +307,8 @@
       (let-location ((atm unsigned-long d-atom))
         (xsetwmprotocols *display* xwindow (location atm) 1)))
 
-    (xlowerwindow *display* xwindow)
+    (when (window-lower)
+      (xlowerwindow *display* xwindow))
 
     (push! window *windows*)))
 
