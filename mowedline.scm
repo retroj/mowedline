@@ -688,7 +688,7 @@
         (eventloop)))
 
     ;; process server commands
-    (for-each (lambda (cmd) ((call-info-thunk cmd)))
+    (for-each (lambda (cmd) ((callinfo-thunk cmd)))
               commands)
 
     (unless (null? *default-widgets*)
@@ -741,7 +741,7 @@
 ;;;
 
 (define (start-client commands)
-  (for-each (lambda (cmd) ((call-info-thunk cmd)))
+  (for-each (lambda (cmd) ((callinfo-thunk cmd)))
             commands))
 
 
@@ -870,19 +870,19 @@
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))
-      ((call-info-thunk cmd)))
+      ((callinfo-thunk cmd)))
     (unless (and (null? (rest special-commands))
                  (null? server-commands)
                  (null? client-commands))
       (printf "~%Warning: the following commands were ignored:~%")
       (for-each
-       (lambda (x) (printf "  ~S~%" (cons (call-info-name x) (call-info-args x))))
+       (lambda (x) (printf "  ~S~%" (cons (callinfo-name x) (callinfo-args x))))
        (append! (rest special-commands) server-commands client-commands))))
    ((daemon-running?)
     (when (not (null? server-commands))
       (printf "Warning: the following commands were ignored because the daemon is already running:~%")
       (for-each
-       (lambda (x) (printf "  ~S~%" (cons (call-info-name x) (call-info-args x))))
+       (lambda (x) (printf "  ~S~%" (cons (callinfo-name x) (callinfo-args x))))
        server-commands))
     (start-client client-commands))
    (else

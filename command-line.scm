@@ -23,9 +23,9 @@
          command-body
          command-name-string
          make-command-group
-         call-info-name
-         call-info-args
-         call-info-thunk
+         callinfo-name
+         callinfo-args
+         callinfo-thunk
          parse-command-line)
 
 (import chicken scheme)
@@ -55,17 +55,17 @@
 ;;; Command Group
 ;;;
 
-(define-syntax mk-command
+(define-syntax %make-command
   (syntax-rules (#:doc)
-    ((mk-command (name . args) #:doc doc . body)
+    ((%make-command (name . args) #:doc doc . body)
      (make-command 'name 'args doc (lambda args . body)))
-    ((mk-command (name . args) . body)
+    ((%make-command (name . args) . body)
      (make-command 'name 'args #f (lambda args . body)))))
 
 (define-syntax make-command-group
   (syntax-rules ()
     ((make-command-group command ...)
-     (list (mk-command . command) ...))))
+     (list (%make-command . command) ...))))
 
 (define (find-command-def name command-group)
   (find (lambda (x) (equal? name (command-name-string x)))
@@ -76,14 +76,14 @@
 ;;; Call Info
 ;;;
 
-(define-record call-info
+(define-record callinfo
   name args thunk)
 
-(define (mk-call-info def args)
+(define (mk-callinfo def args)
   (let ((name (command-name-string def))
         (body (command-body def)))
-    (make-call-info name args
-                    (lambda () (apply body args)))))
+    (make-callinfo name args
+                   (lambda () (apply body args)))))
 
 
 ;;;
@@ -112,7 +112,7 @@
                 (error (sprintf "~A requires ~A arguments, but only ~A were given"
                                 op narg count)))
               (let ((d (list-tail out group-index)))
-                (set-car! d (append! (car d) (list (mk-call-info def (take input narg))))))
+                (set-car! d (append! (car d) (list (mk-callinfo def (take input narg))))))
               (loop (list-tail input narg) (- count narg))))))
     (loop input (length input))))
 
