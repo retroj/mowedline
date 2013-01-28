@@ -23,7 +23,7 @@
      srfi-69 ;; hash tables
      coops
      data-structures
-     dbus
+     (prefix dbus dbus:)
      environments
      filepath
      list-utils
