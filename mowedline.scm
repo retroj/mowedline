@@ -30,7 +30,6 @@
      lolevel
      miscmacros
      posix
-     usleep
      xft
      (except xlib make-xrectangle
                   xrectangle-x xrectangle-y
@@ -686,7 +685,7 @@
       (while (not (queue-empty? *internal-events*))
         ((queue-remove! *internal-events*)))
       (unless done
-        (usleep 500)
+        (thread-sleep! 0.01)
         (eventloop)))
 
     ;; process server commands
