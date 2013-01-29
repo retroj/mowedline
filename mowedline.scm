@@ -805,9 +805,9 @@
 
 
 (let-values (((server-commands special-commands)
-              (parse-command-line (command-line-arguments)
-                                  server-options
-                                  special-options)))
+              (parse (command-line-arguments)
+                     server-options
+                     special-options)))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))

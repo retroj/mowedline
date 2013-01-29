@@ -104,9 +104,9 @@
 
 
 (let-values (((client-commands special-commands)
-              (parse-command-line (command-line-arguments)
-                                  client-options
-                                  special-options)))
+              (parse (command-line-arguments)
+                     client-options
+                     special-options)))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))

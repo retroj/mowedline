@@ -26,7 +26,7 @@
          callinfo-name
          callinfo-args
          callinfo-thunk
-         parse-command-line)
+         parse)
 
 (import chicken scheme)
 
@@ -90,7 +90,7 @@
 ;;; Parser
 ;;;
 
-(define (parse-command-line input . command-groups)
+(define (parse input . command-groups)
   (let ((out (map (lambda (x) (list)) command-groups)))
     (define (loop input count)
       (if (null? input)
