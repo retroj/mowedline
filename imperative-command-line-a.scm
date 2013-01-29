@@ -79,11 +79,13 @@
 (define-record callinfo
   name args thunk)
 
-(define (mk-callinfo def args)
+(define %make-callinfo make-callinfo)
+
+(define (make-callinfo def args)
   (let ((name (command-name-string def))
         (body (command-body def)))
-    (make-callinfo name args
-                   (lambda () (apply body args)))))
+    (%make-callinfo name args
+                    (lambda () (apply body args)))))
 
 
 ;;;
@@ -112,7 +114,7 @@
                 (error (sprintf "~A requires ~A arguments, but only ~A were given"
                                 op narg count)))
               (let ((d (list-tail out group-index)))
-                (set-car! d (append! (car d) (list (mk-callinfo def (take input narg))))))
+                (set-car! d (append! (car d) (list (make-callinfo def (take input narg))))))
               (loop (list-tail input narg) (- count narg))))))
     (loop input (length input))))
 
