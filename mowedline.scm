@@ -795,7 +795,7 @@
       (printf "mowedline version ~A, by John J. Foerch~%" version)
       (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
       (help-section special-options)
-      (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
+      (printf "~%SERVER OPTIONS~%~%")
       (help-section server-options)
       (newline)))
 
