@@ -39,7 +39,7 @@
 (include "command-line")
 (import command-line)
 
-(define version "0.2pre")
+(include "version")
 
 
 ;;;
