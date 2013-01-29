@@ -22,8 +22,8 @@
      (prefix dbus dbus:)
      miscmacros)
 
-(include "command-line")
-(import command-line)
+(include "imperative-command-line-a")
+(import imperative-command-line-a)
 
 (include "version")
 

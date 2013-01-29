@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(module command-line
+(module imperative-command-line-a
         (make-command
          command-name
          command-args
