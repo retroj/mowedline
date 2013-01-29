@@ -24,12 +24,12 @@
      coops
      data-structures
      (prefix dbus dbus:)
-     environments
      filepath
      list-utils
      lolevel
      miscmacros
      posix
+     regex ;; only needed for my .mowedline!
      xft
      (except xlib make-xrectangle
                   xrectangle-x xrectangle-y
@@ -699,9 +699,7 @@
               (find file-read-access?
                     (L (filepath:join-path (L "~" ".mowedline"))
                        (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))
-         (let ((env (environment-copy (interaction-environment) #t)))
-           (environment-extend! env 'make make)
-           (load it (lambda (form) (eval form env)))))
+         (load it))
 
     (when (null? *windows*)
       (make <window>
