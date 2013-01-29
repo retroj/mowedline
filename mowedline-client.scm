@@ -18,13 +18,9 @@
 (import chicken scheme extras)
 
 (use srfi-1
-     coops
      data-structures
      (prefix dbus dbus:)
-     filepath
-     list-utils
-     miscmacros
-     posix)
+     miscmacros)
 
 (include "command-line")
 (import command-line)
