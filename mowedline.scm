@@ -643,8 +643,7 @@
 
 (define bypass-startup-script (make-parameter #f))
 
-(define (start-server commands input output)
-  (file-close input)
+(define (start-server commands)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
@@ -715,9 +714,6 @@
       (dbus:register-method dbus-context "update" update)
       (dbus:register-method dbus-context "quit" quit))
 
-    (file-write output "ready\n")
-    (file-close output)
-
     (for-each
      (lambda (w)
        (xselectinput *display*
@@ -735,28 +731,8 @@
 
 
 ;;;
-;;; Client / Command Line
+;;; Command Line
 ;;;
-
-(define (start-client commands)
-  (for-each (lambda (cmd) ((callinfo-thunk cmd)))
-            commands))
-
-
-(define (daemon-running?)
-  ;; this is our workaround for not being able to use
-  ;; dbus:discover-services prior to forking.  (it seems
-  ;; to be impossible to fork a dbus program once it's
-  ;; performed any communication.)
-  (find
-   (lambda (line) (string-contains line "mowedline.server"))
-   (call-with-input-pipe
-    (string-join
-     (L "dbus-send" "--type=method_call" "--print-reply"
-        "--dest=org.freedesktop.DBus" "/org/freedesktop/DBus"
-        "org.freedesktop.DBus.ListNames"))
-    read-lines)))
-
 
 (define server-options
   (make-command-group
@@ -789,36 +765,6 @@
     (set! *default-widgets* (list)))))
 
 
-(define client-options
-  (make-command-group
-   ((quit)
-    doc: "quit the program"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (dbus:call dbus-context "quit")))
-
-   ((read widget)
-    doc: "updates widget by reading lines from stdin"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (let loop ()
-        (let ((line (read-line (current-input-port))))
-          (unless (eof-object? line)
-            (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-              (printf "widget not found, ~S~%" widget))
-            (loop))))))
-
-   ((update widget value)
-    doc: "updates widget with value"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-        (printf "widget not found, ~S~%" widget))))))
-
-
 (define special-options
   (make-command-group
    ((help)
@@ -831,7 +777,7 @@
                            (* 3 (length (command-args def)))
                            (map (compose string-length symbol->string)
                                 (command-args def))))
-                  (append server-options client-options special-options))))
+                  (append server-options special-options))))
           (docspc 3))
       (define (help-section option-group)
         (for-each
@@ -851,8 +797,6 @@
       (help-section special-options)
       (printf "~%SERVER OPTIONS  (only valid when starting the server)~%~%")
       (help-section server-options)
-      (printf "~%CLIENT OPTIONS~%~%")
-      (help-section client-options)
       (newline)))
 
    ((version)
@@ -860,39 +804,19 @@
     (printf "mowedline version ~A, by John J. Foerch~%" version))))
 
 
-(let-values (((server-commands client-commands special-commands)
+(let-values (((server-commands special-commands)
               (parse-command-line (command-line-arguments)
                                   server-options
-                                  client-options
                                   special-options)))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))
       ((callinfo-thunk cmd)))
     (unless (and (null? (rest special-commands))
-                 (null? server-commands)
-                 (null? client-commands))
+                 (null? server-commands))
       (printf "~%Warning: the following commands were ignored:~%")
       (for-each
        (lambda (x) (printf "  ~S~%" (cons (callinfo-name x) (callinfo-args x))))
-       (append! (rest special-commands) server-commands client-commands))))
-   ((daemon-running?)
-    (when (not (null? server-commands))
-      (printf "Warning: the following commands were ignored because the daemon is already running:~%")
-      (for-each
-       (lambda (x) (printf "  ~S~%" (cons (callinfo-name x) (callinfo-args x))))
-       server-commands))
-    (start-client client-commands))
+       (append! (rest special-commands) server-commands))))
    (else
-    (call-with-values create-pipe
-      (lambda (input output)
-        (process-fork
-         (lambda ()
-           (create-session)
-           (start-server server-commands input output)))
-        (file-close output)
-        ;; wait for something to come through on input so that we don't
-        ;; send commands until the daemon is ready to receive.
-        (file-read input 10)
-        (file-close input)
-        (start-client client-commands))))))
+    (start-server server-commands))))
