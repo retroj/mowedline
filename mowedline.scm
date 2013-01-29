@@ -37,7 +37,7 @@
      xtypes)
 
 (include "imperative-command-line-a")
-(import imperative-command-line-a)
+(import (prefix imperative-command-line-a icla:))
 
 (include "version")
 
@@ -687,7 +687,7 @@
         (eventloop)))
 
     ;; process server commands
-    (for-each (lambda (cmd) ((callinfo-thunk cmd)))
+    (for-each (lambda (cmd) ((icla:callinfo-thunk cmd)))
               commands)
 
     (unless (null? *default-widgets*)
@@ -735,7 +735,7 @@
 ;;;
 
 (define server-options
-  (make-command-group
+  (icla:make-command-group
    ((q)
     doc: "bypass .mowedline"
     (bypass-startup-script #t))
@@ -766,30 +766,30 @@
 
 
 (define special-options
-  (make-command-group
+  (icla:make-command-group
    ((help)
     doc: "displays this help"
     (let ((longest
            (fold max 0
                  (map
                   (lambda (def)
-                    (apply + 2 (string-length (command-name-string def))
-                           (* 3 (length (command-args def)))
+                    (apply + 2 (string-length (icla:command-name-string def))
+                           (* 3 (length (icla:command-args def)))
                            (map (compose string-length symbol->string)
-                                (command-args def))))
+                                (icla:command-args def))))
                   (append server-options special-options))))
           (docspc 3))
       (define (help-section option-group)
         (for-each
          (lambda (def)
-           (let ((col1 (apply string-append " -" (command-name-string def)
+           (let ((col1 (apply string-append " -" (icla:command-name-string def)
                               (map (lambda (a)
                                      (string-append " <" (symbol->string a) ">"))
-                                   (command-args def)))))
+                                   (icla:command-args def)))))
              (display col1)
-             (when (command-doc def)
+             (when (icla:command-doc def)
                (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
-               (display (command-doc def)))
+               (display (icla:command-doc def)))
              (newline)))
          option-group))
       (printf "mowedline version ~A, by John J. Foerch~%" version)
@@ -805,18 +805,18 @@
 
 
 (let-values (((server-commands special-commands)
-              (parse (command-line-arguments)
-                     server-options
-                     special-options)))
+              (icla:parse (command-line-arguments)
+                          server-options
+                          special-options)))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))
-      ((callinfo-thunk cmd)))
+      ((icla:callinfo-thunk cmd)))
     (unless (and (null? (rest special-commands))
                  (null? server-commands))
       (printf "~%Warning: the following commands were ignored:~%")
       (for-each
-       (lambda (x) (printf "  ~S~%" (cons (callinfo-name x) (callinfo-args x))))
+       (lambda (x) (printf "  ~S~%" (cons (icla:callinfo-name x) (icla:callinfo-args x))))
        (append! (rest special-commands) server-commands))))
    (else
     (start-server server-commands))))
