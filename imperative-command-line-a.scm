@@ -172,7 +172,7 @@
              (display (command-doc def)))
            (newline)))
        option-group))
-    (printf "~A~%" (help-heading))
+    (print (help-heading))
     (for-each
      (lambda (group)
        (let ((title (car group))
@@ -184,6 +184,6 @@
 
  ((version)
   doc: "prints the version"
-  (printf "~A~%" (help-heading))))
+  (print (help-heading))))
 
 )
