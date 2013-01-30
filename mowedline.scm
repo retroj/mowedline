@@ -350,7 +350,8 @@
         (when (> m p)
           (xcleararea *display* (slot-value window 'xwindow)
                       p 0 (- m p) (slot-value window 'height)
-                      0)))))
+                      0)))
+      (xflush *display*)))
     ((window)
      (window-expose window
                     (make-xrectangle
@@ -648,44 +649,12 @@
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
-  (let ((event (make-xevent))
+  (let ((x-fd (xconnectionnumber *display*))
+        (event (make-xevent))
         (done #f))
 
     (define (quit . params)
       (set! done #t))
-
-    (define (eventloop)
-      (when (> (xpending *display*) 0)
-        (xnextevent *display* event)
-        (case (xevent-type event)
-          ((CLIENTMESSAGE)
-           (set! done #t))
-          ((EXPOSE)
-           (let* ((xwindow (xexposeevent-window event))
-                  (window (find (lambda (win)
-                                  (equal? (slot-value win 'xwindow) xwindow))
-                                *windows*))
-                  (x (xexposeevent-x event))
-                  (y (xexposeevent-y event))
-                  (width (xexposeevent-width event))
-                  (height (xexposeevent-height event)))
-             (window-expose window (make-xrectangle x y width height))))
-          ((BUTTONPRESS)
-           (and-let* ((xwindow (xexposeevent-window event))
-                      (window (find (lambda (win)
-                                      (equal? (slot-value win 'xwindow) xwindow))
-                                    *windows*))
-                      (widget (window-widget-at-position
-                               window (xbuttonpressedevent-x event)))
-                      (button (widget-button-at-position
-                               widget (xbuttonpressedevent-x event))))
-             ((eval (button-thunk button)))))))
-      (dbus:poll-for-message)
-      (while (not (queue-empty? *internal-events*))
-        ((queue-remove! *internal-events*)))
-      (unless done
-        (thread-sleep! 0.01)
-        (eventloop)))
 
     ;; process server commands
     (for-each (lambda (cmd) ((icla:callinfo-thunk cmd)))
@@ -726,8 +695,46 @@
        (xnextevent *display* event)
        (window-expose w))
      *windows*)
-    (xflush *display*)
-    (eventloop))
+
+    (define (x-eventloop)
+      (thread-wait-for-i/o! x-fd input:)
+      (xnextevent *display* event)
+      (select (xevent-type event)
+        ((CLIENTMESSAGE)
+         (set! done #t))
+        ((EXPOSE)
+         (let* ((xwindow (xexposeevent-window event))
+                (window (find (lambda (win)
+                                (equal? (slot-value win 'xwindow) xwindow))
+                              *windows*))
+                (x (xexposeevent-x event))
+                (y (xexposeevent-y event))
+                (width (xexposeevent-width event))
+                (height (xexposeevent-height event)))
+           (window-expose window (make-xrectangle x y width height))))
+        ((BUTTONPRESS)
+         (and-let* ((xwindow (xexposeevent-window event))
+                    (window (find (lambda (win)
+                                    (equal? (slot-value win 'xwindow) xwindow))
+                                  *windows*))
+                    (widget (window-widget-at-position
+                             window (xbuttonpressedevent-x event)))
+                    (button (widget-button-at-position
+                             widget (xbuttonpressedevent-x event))))
+           ((eval (button-thunk button))))))
+      (x-eventloop))
+
+    (define (dbus-eventloop)
+      (dbus:poll-for-message)
+      (while (not (queue-empty? *internal-events*))
+        ((queue-remove! *internal-events*)))
+      (unless done
+        (thread-sleep! 0.01)
+        (dbus-eventloop)))
+
+    (let ((thread (thread-start! x-eventloop)))
+      (dbus-eventloop)
+      (thread-terminate! thread)))
   (xclosedisplay *display*))
 
 
