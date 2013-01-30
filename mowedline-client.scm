@@ -33,80 +33,42 @@
   (for-each (lambda (cmd) ((icla:callinfo-thunk cmd)))
             commands))
 
+(icla:help-heading
+ (sprintf "mowedline-client version ~A, by John J. Foerch" version))
 
-(define client-options
-  (icla:make-command-group
-   ((quit)
-    doc: "quit the program"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (dbus:call dbus-context "quit")))
+(icla:add-command-group
+ "CLIENT OPTIONS"
+ ((quit)
+  doc: "quit the program"
+  (let ((dbus-context
+         (dbus:make-context service: 'mowedline.server
+                            interface: 'mowedline.interface)))
+    (dbus:call dbus-context "quit")))
 
-   ((read widget)
-    doc: "updates widget by reading lines from stdin"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (let loop ()
-        (let ((line (read-line (current-input-port))))
-          (unless (eof-object? line)
-            (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-              (printf "widget not found, ~S~%" widget))
-            (loop))))))
+ ((read widget)
+  doc: "updates widget by reading lines from stdin"
+  (let ((dbus-context
+         (dbus:make-context service: 'mowedline.server
+                            interface: 'mowedline.interface)))
+    (let loop ()
+      (let ((line (read-line (current-input-port))))
+        (unless (eof-object? line)
+          (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+            (printf "widget not found, ~S~%" widget))
+          (loop))))))
 
-   ((update widget value)
-    doc: "updates widget with value"
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-        (printf "widget not found, ~S~%" widget))))))
-
-
-(define special-options
-  (icla:make-command-group
-   ((help)
-    doc: "displays this help"
-    (let ((longest
-           (fold max 0
-                 (map
-                  (lambda (def)
-                    (apply + 2 (string-length (icla:command-name-string def))
-                           (* 3 (length (icla:command-args def)))
-                           (map (compose string-length symbol->string)
-                                (icla:command-args def))))
-                  (append client-options special-options))))
-          (docspc 3))
-      (define (help-section option-group)
-        (for-each
-         (lambda (def)
-           (let ((col1 (apply string-append " -" (icla:command-name-string def)
-                              (map (lambda (a)
-                                     (string-append " <" (symbol->string a) ">"))
-                                   (icla:command-args def)))))
-             (display col1)
-             (when (icla:command-doc def)
-               (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
-               (display (icla:command-doc def)))
-             (newline)))
-         option-group))
-      (printf "mowedline version ~A, by John J. Foerch~%" version)
-      (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
-      (help-section special-options)
-      (printf "~%CLIENT OPTIONS~%~%")
-      (help-section client-options)
-      (newline)))
-
-   ((version)
-    doc: "prints the version"
-    (printf "mowedline version ~A, by John J. Foerch~%" version))))
-
+ ((update widget value)
+  doc: "updates widget with value"
+  (let ((dbus-context
+         (dbus:make-context service: 'mowedline.server
+                            interface: 'mowedline.interface)))
+    (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+      (printf "widget not found, ~S~%" widget)))))
 
 (let-values (((client-commands special-commands)
               (icla:parse (command-line-arguments)
-                          client-options
-                          special-options)))
+                          (cdr (second (icla:groups)))
+                          (cdr (first (icla:groups))))))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))

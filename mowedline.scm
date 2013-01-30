@@ -734,80 +734,42 @@
 ;;; Command Line
 ;;;
 
-(define server-options
-  (icla:make-command-group
-   ((q)
-    doc: "bypass .mowedline"
-    (bypass-startup-script #t))
-   ((text-widget name)
-    (push! (make <text-widget>
-             'name name)
-           *default-widgets*))
-   ((clock)
-    (push! (make <clock>)
-           *default-widgets*))
-   ((bg color)
-    doc: "set default background-color"
-    (widget-background-color color))
-   ((fg color)
-    doc: "set the default text color"
-    (text-widget-color color))
-   ((flex value)
-    doc: "set the default flex value"
-    (widget-flex value))
-   ;;(make-command (screen screen) 1)
-   ((position value)
-    doc: "set the default window position (top or bottom)"
-    (window-position (string->symbol value)))
-   ((window)
-    doc: "make a window containing the foregoing widgets"
-    (make <window> 'widgets (reverse! *default-widgets*))
-    (set! *default-widgets* (list)))))
+(icla:help-heading
+ (sprintf "mowedline version ~A, by John J. Foerch" version))
 
-
-(define special-options
-  (icla:make-command-group
-   ((help)
-    doc: "displays this help"
-    (let ((longest
-           (fold max 0
-                 (map
-                  (lambda (def)
-                    (apply + 2 (string-length (icla:command-name-string def))
-                           (* 3 (length (icla:command-args def)))
-                           (map (compose string-length symbol->string)
-                                (icla:command-args def))))
-                  (append server-options special-options))))
-          (docspc 3))
-      (define (help-section option-group)
-        (for-each
-         (lambda (def)
-           (let ((col1 (apply string-append " -" (icla:command-name-string def)
-                              (map (lambda (a)
-                                     (string-append " <" (symbol->string a) ">"))
-                                   (icla:command-args def)))))
-             (display col1)
-             (when (icla:command-doc def)
-               (dotimes (_ (+ docspc (- longest (string-length col1)))) (display " "))
-               (display (icla:command-doc def)))
-             (newline)))
-         option-group))
-      (printf "mowedline version ~A, by John J. Foerch~%" version)
-      (printf "~%SPECIAL OPTIONS  (evaluate first one and exit)~%~%")
-      (help-section special-options)
-      (printf "~%SERVER OPTIONS~%~%")
-      (help-section server-options)
-      (newline)))
-
-   ((version)
-    doc: "prints the version"
-    (printf "mowedline version ~A, by John J. Foerch~%" version))))
-
+(icla:add-command-group
+ "SERVER OPTIONS"
+ ((q)
+  doc: "bypass .mowedline"
+  (bypass-startup-script #t))
+ ((text-widget name)
+  (push! (make <text-widget>
+           'name name)
+         *default-widgets*))
+ ((clock)
+  (push! (make <clock>)
+         *default-widgets*))
+ ((bg color)
+  doc: "set default background-color"
+  (widget-background-color color))
+ ((fg color)
+  doc: "set the default text color"
+  (text-widget-color color))
+ ((flex value)
+  doc: "set the default flex value"
+  (widget-flex value))
+ ((position value)
+  doc: "set the default window position (top or bottom)"
+  (window-position (string->symbol value)))
+ ((window)
+  doc: "make a window containing the foregoing widgets"
+  (make <window> 'widgets (reverse! *default-widgets*))
+  (set! *default-widgets* (list))))
 
 (let-values (((server-commands special-commands)
               (icla:parse (command-line-arguments)
-                          server-options
-                          special-options)))
+                          (cdr (second (icla:groups)))
+                          (cdr (first (icla:groups))))))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))

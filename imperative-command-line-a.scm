@@ -23,15 +23,21 @@
          command-body
          command-name-string
          make-command-group
+         add-command-group
          callinfo-name
          callinfo-args
          callinfo-thunk
-         parse)
+         parse
+         groups
+         help-heading
+         help-minimum-intercolumn-space)
 
-(import chicken scheme)
+(import chicken scheme extras)
 
 (use srfi-1
-     srfi-13)
+     srfi-13
+     data-structures
+     miscmacros)
 
 ;;;
 ;;; Language
@@ -55,6 +61,8 @@
 ;;; Command Group
 ;;;
 
+(define groups (make-parameter '()))
+
 (define-syntax %make-command
   (syntax-rules (#:doc)
     ((%make-command (name . args) #:doc doc . body)
@@ -66,6 +74,15 @@
   (syntax-rules ()
     ((make-command-group command ...)
      (list (%make-command . command) ...))))
+
+(define-syntax add-command-group
+  (syntax-rules ()
+    ((add-command-group title . command-defs)
+     (groups
+      (append!
+       (groups)
+       (list
+        (cons title (make-command-group . command-defs))))))))
 
 (define (find-command-def name command-group)
   (find (lambda (x) (equal? name (command-name-string x)))
@@ -117,5 +134,56 @@
                 (set-car! d (append! (car d) (list (make-callinfo def (take input narg))))))
               (loop (list-tail input narg) (- count narg))))))
     (loop input (length input))))
+
+
+;;;
+;;; Default Command Group(s)
+;;;
+
+(define help-heading (make-parameter #f))
+
+(define help-minimum-intercolumn-space (make-parameter 3))
+
+(add-command-group
+ "SPECIAL OPTIONS  (evaluate first one and exit)"
+ ((help)
+  doc: "displays this help"
+  (let ((longest
+         (fold max 0
+               (map
+                (lambda (def)
+                  (apply + 2 (string-length (command-name-string def))
+                         (* 3 (length (command-args def)))
+                         (map (compose string-length symbol->string)
+                              (command-args def))))
+                (append-map cdr (groups))))))
+    (define (help-section option-group)
+      (for-each
+       (lambda (def)
+         (let ((col1 (apply string-append " -" (command-name-string def)
+                            (map (lambda (a)
+                                   (string-append " <" (symbol->string a) ">"))
+                                 (command-args def)))))
+           (display col1)
+           (when (command-doc def)
+             (dotimes (_ (+ (help-minimum-intercolumn-space)
+                            (- longest (string-length col1))))
+               (display " "))
+             (display (command-doc def)))
+           (newline)))
+       option-group))
+    (printf "~A~%" (help-heading))
+    (for-each
+     (lambda (group)
+       (let ((title (car group))
+             (commands (cdr group)))
+         (printf "~%~A~%~%" title)
+         (help-section commands)))
+     (groups))
+    (newline)))
+
+ ((version)
+  doc: "prints the version"
+  (printf "~A~%" (help-heading))))
 
 )
