@@ -18,9 +18,7 @@
 (import chicken scheme extras)
 
 (use srfi-1
-     data-structures
-     (prefix dbus dbus:)
-     miscmacros)
+     (prefix dbus dbus:))
 
 (include "imperative-command-line-a")
 (import (prefix imperative-command-line-a icla:))
