@@ -15,7 +15,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(import chicken scheme extras foreign)
+(import chicken scheme foreign)
 
 (use srfi-1
      srfi-4 ;; homogeneous numeric vectors
@@ -24,6 +24,7 @@
      coops
      data-structures
      (prefix dbus dbus:)
+     extras
      filepath
      list-utils
      lolevel

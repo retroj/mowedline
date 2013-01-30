@@ -32,11 +32,12 @@
          help-heading
          help-minimum-intercolumn-space)
 
-(import chicken scheme extras)
+(import chicken scheme)
 
 (use srfi-1
      srfi-13
      data-structures
+     extras
      miscmacros)
 
 ;;;

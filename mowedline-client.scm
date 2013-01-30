@@ -15,9 +15,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(import chicken scheme extras)
+(import chicken scheme)
 
 (use srfi-1
+     extras
      (prefix dbus dbus:))
 
 (include "imperative-command-line-a")
