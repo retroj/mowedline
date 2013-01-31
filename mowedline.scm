@@ -28,6 +28,7 @@
      filepath
      list-utils
      lolevel
+     mailbox
      miscmacros
      posix
      regex ;; only needed for my .mowedline!
@@ -63,7 +64,7 @@
 
 (define *default-widgets* (list))
 
-(define *internal-events* (make-queue))
+(define *internal-events* (make-mailbox))
 
 
 ;;;
@@ -574,7 +575,7 @@
     (let loop ()
       (let* ((time (seconds->local-time (current-seconds)))
              (s (vector-ref time 0)))
-        (queue-add!
+        (mailbox-send!
          *internal-events*
          (lambda ()
            (update widget
@@ -726,15 +727,20 @@
 
     (define (dbus-eventloop)
       (dbus:poll-for-message)
-      (while (not (queue-empty? *internal-events*))
-        ((queue-remove! *internal-events*)))
       (unless done
         (thread-sleep! 0.01)
         (dbus-eventloop)))
 
-    (let ((thread (thread-start! x-eventloop)))
+    (define (internal-events-eventloop)
+      (let loop ()
+        ((mailbox-receive! *internal-events*))
+        (loop)))
+
+    (let ((x-thread (thread-start! x-eventloop))
+          (internal-events-thread (thread-start! internal-events-eventloop)))
       (dbus-eventloop)
-      (thread-terminate! thread)))
+      (thread-terminate! x-thread)
+      (thread-terminate! internal-events-thread)))
   (xclosedisplay *display*))
 
 
