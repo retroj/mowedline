@@ -698,7 +698,8 @@
      *windows*)
 
     (define (x-eventloop)
-      (thread-wait-for-i/o! x-fd input:)
+      (unless (> (xpending *display*) 0)
+        (thread-wait-for-i/o! x-fd input:))
       (xnextevent *display* event)
       (select (xevent-type event)
         ((CLIENTMESSAGE)
