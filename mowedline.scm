@@ -636,17 +636,26 @@
 ;;;
 
 (define (update widget-or-name . params)
-  (llog 'update "~S ~S" (widget-or-name params))
-  (and-let*
-      ((widget (if (string? widget-or-name)
-                   (hash-table-ref/default *widgets* widget-or-name #f)
-                   widget-or-name)))
-    (widget-update widget params)
-    (let ((window (slot-value widget 'window)))
-      (window-expose window (or (window-update-widget-dimensions! window)
-                                (slot-value widget 'xrectangle))))
-    #t))
+  (llog 'update "~S ~S" (widget-or-name params)
+    (and-let*
+        ((widget (if (string? widget-or-name)
+                     (hash-table-ref/default *widgets* widget-or-name #f)
+                     widget-or-name)))
+      (widget-update widget params)
+      (let ((window (slot-value widget 'window)))
+        (window-expose window (or (window-update-widget-dimensions! window)
+                                  (slot-value widget 'xrectangle))))
+      #t)))
 
+(define (log-watch symlist . params)
+  (for-each
+   (lambda (x)
+     (case (string-ref x 0)
+       ((#\-) (llog-unwatch (string->symbol (string-drop x 1))))
+       ((#\+) (llog-watch (string->symbol (string-drop x 1))))
+       (else (llog-watch (string->symbol x)))))
+   (string-split symlist ", ")) 
+  #t)
 
 (define bypass-startup-script (make-parameter #f))
 
@@ -687,7 +696,8 @@
                               interface: 'mowedline.interface)))
       (dbus:enable-polling-thread! enable: #f)
       (dbus:register-method dbus-context "update" update)
-      (dbus:register-method dbus-context "quit" quit))
+      (dbus:register-method dbus-context "quit" quit)
+      (dbus:register-method dbus-context "log" log-watch))
 
     (for-each
      (lambda (w)

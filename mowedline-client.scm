@@ -62,7 +62,14 @@
          (dbus:make-context service: 'mowedline.server
                             interface: 'mowedline.interface)))
     (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-      (printf "widget not found, ~S~%" widget)))))
+      (printf "widget not found, ~S~%" widget))))
+
+ ((log symlist)
+  doc: "turn on logging for messages of type SYM1,SYM2,..."
+  (let ((dbus-context
+         (dbus:make-context service: 'mowedline.server
+                            interface: 'mowedline.interface)))
+    (dbus:call dbus-context "log" symlist))))
 
 (let-values (((client-commands special-commands)
               (icla:parse (command-line-arguments)
