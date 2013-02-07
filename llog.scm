@@ -23,11 +23,13 @@
      llog-indent-string
      llog-line
      llog
-     llog-unwind)
+     llog-indent
+     llog-unindent)
 
 (import chicken scheme)
 
 (use srfi-1
+     srfi-13
      extras)
 
 (define llog-watches (make-parameter '()))
@@ -50,10 +52,18 @@
 
 (define (llog-line type format . args)
   (when (memq type (llog-watches))
-    (llog-depth (+ 1 (llog-depth)))
-    (apply printf (string-append "~A " format "~%") type args)))
+    (apply printf (string-append "~A~A " format "~%")
+           (xsubstring (llog-indent-string)
+                       0
+                       (* (llog-depth)
+                          (string-length (llog-indent-string))))
+           type args)))
 
-(define (llog-unwind type)
+(define (llog-indent type)
+  (when (memq type (llog-watches))
+    (llog-depth (+ (llog-depth) 1))))
+
+(define (llog-unindent type)
   (when (memq type (llog-watches))
     (llog-depth (- (llog-depth) 1))))
 
@@ -66,7 +76,8 @@
          (lambda () #f)
          (lambda ()
            (llog type format (args ...))
+           (llog-indent type)
            form . forms)
-         (lambda () (llog-unwind type))))))
+         (lambda () (llog-unindent type))))))
 
 )

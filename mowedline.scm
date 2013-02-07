@@ -226,8 +226,15 @@
 (define window-position (make-parameter 'top))
 (define window-lower (make-parameter #t))
 
+(define window-get-next-id
+  (let ((last -1))
+    (lambda ()
+      (inc! last)
+      last)))
+
 (define-class <window> ()
-  ((screen initform: (xdefaultscreen *display*))
+  ((id initform: (window-get-next-id))
+   (screen initform: (xdefaultscreen *display*))
    (position initform: (window-position))
    (height initform: #f)
    (width initform: #f)
@@ -326,6 +333,7 @@
     (let ((widgets (slot-value window 'widgets))
           (r (xcreateregion)))
       (xunionrectwithregion xrectangle (xcreateregion) r)
+      (llog 'expose "window ~S, ~S" ((slot-value window 'id) xrectangle))
       (for-each
        (lambda (widget)
          ;; does this widget intersect xrectangle?

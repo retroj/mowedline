@@ -65,7 +65,7 @@
       (printf "widget not found, ~S~%" widget))))
 
  ((log symlist)
-  doc: "turn on logging for messages of type SYM1,SYM2,..."
+  doc: "enable or disable logging; [+-]SYM1,[+-]SYM2,..."
   (let ((dbus-context
          (dbus:make-context service: 'mowedline.server
                             interface: 'mowedline.interface)))
