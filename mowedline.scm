@@ -41,6 +41,9 @@
 (include "imperative-command-line-a")
 (import (prefix imperative-command-line-a icla:))
 
+(include "llog")
+(import llog)
+
 (include "version")
 
 
@@ -633,6 +636,7 @@
 ;;;
 
 (define (update widget-or-name . params)
+  (llog 'update "~S ~S" (widget-or-name params))
   (and-let*
       ((widget (if (string? widget-or-name)
                    (hash-table-ref/default *widgets* widget-or-name #f)
