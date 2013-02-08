@@ -32,40 +32,40 @@
      srfi-13
      extras)
 
-(define llog-watches (make-parameter '()))
+(define llog-watches '())
 
 (define (llog-watch . syms)
-  (llog-watches (lset-union eq? (llog-watches) syms)))
+  (set! llog-watches (lset-union eq? llog-watches syms)))
 
 (define (llog-unwatch . syms)
-  (llog-watches (lset-difference eq? (llog-watches) syms)))
+  (set! llog-watches (lset-difference eq? llog-watches syms)))
 
 (define (llog-watch-only . syms)
-  (llog-watches syms))
+  (set! llog-watches syms))
 
 (define (llog-unwatch-all)
-  (llog-watches '()))
+  (set! llog-watches '()))
 
-(define llog-depth (make-parameter 0))
+(define llog-depth 0)
 
 (define llog-indent-string (make-parameter "  "))
 
 (define (llog-line type format . args)
-  (when (memq type (llog-watches))
+  (when (memq type llog-watches)
     (apply printf (string-append "~A~A " format "~%")
            (xsubstring (llog-indent-string)
                        0
-                       (* (llog-depth)
+                       (* llog-depth
                           (string-length (llog-indent-string))))
            type args)))
 
 (define (llog-indent type)
-  (when (memq type (llog-watches))
-    (llog-depth (+ (llog-depth) 1))))
+  (when (memq type llog-watches)
+    (set! llog-depth (+ llog-depth 1))))
 
 (define (llog-unindent type)
-  (when (memq type (llog-watches))
-    (llog-depth (- (llog-depth) 1))))
+  (when (memq type llog-watches)
+    (set! llog-depth (- llog-depth 1))))
 
 (define-syntax llog
   (syntax-rules ()
