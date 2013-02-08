@@ -69,15 +69,15 @@
 
 (define-syntax llog
   (syntax-rules ()
-    ((llog type format (args ...))
-     (llog-line type format args ...))
-    ((llog type format (args ...) form . forms)
+    ((llog (type format . args) form . forms)
      (dynamic-wind
          (lambda () #f)
          (lambda ()
-           (llog type format (args ...))
-           (llog-indent type)
+           (llog type format . args)
+           (llog-indent 'type)
            form . forms)
-         (lambda () (llog-unindent type))))))
+         (lambda () (llog-unindent 'type))))
+    ((llog type format . args)
+     (llog-line 'type format . args))))
 
 )

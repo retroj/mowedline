@@ -333,7 +333,7 @@
     (let ((widgets (slot-value window 'widgets))
           (r (xcreateregion)))
       (xunionrectwithregion xrectangle (xcreateregion) r)
-      (llog 'expose "window ~S, ~S" ((slot-value window 'id) xrectangle))
+      (llog expose "window ~S, ~S" (slot-value window 'id) xrectangle)
       (for-each
        (lambda (widget)
          ;; does this widget intersect xrectangle?
@@ -644,7 +644,7 @@
 ;;;
 
 (define (update widget-or-name . params)
-  (llog 'update "~S ~S" (widget-or-name params)
+  (llog (update "~S ~S" widget-or-name params)
     (and-let*
         ((widget (if (string? widget-or-name)
                      (hash-table-ref/default *widgets* widget-or-name #f)
