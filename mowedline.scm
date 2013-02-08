@@ -200,19 +200,6 @@
 
 
 ;;;
-;;; Other Utils
-;;;
-
-(define (print-rectangle rect)
-  (let ((x (xrectangle-x rect))
-        (y (xrectangle-y rect))
-        (width (xrectangle-width rect))
-        (height (xrectangle-height rect)))
-    (printf "#<xrectangle ~A ~A ~A ~A>~%"
-            x y width height)))
-
-
-;;;
 ;;; Button
 ;;;
 
@@ -333,7 +320,9 @@
     (let ((widgets (slot-value window 'widgets))
           (r (xcreateregion)))
       (xunionrectwithregion xrectangle (xcreateregion) r)
-      (llog expose "window ~S, ~S" (slot-value window 'id) xrectangle)
+      (llog expose "window ~A, ~A"
+            (slot-value window 'id)
+            (xrectangle->string xrectangle))
       (for-each
        (lambda (widget)
          ;; does this widget intersect xrectangle?
