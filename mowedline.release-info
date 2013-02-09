@@ -1,0 +1,5 @@
+;; -*- scheme -*-
+
+(repo git "git://github.com/retroj/mowedline.git")
+(uri targz "https://github.com/retroj/mowedline/tarball/{egg-release}")
+(release "0.2pre2")

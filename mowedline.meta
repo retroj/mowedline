@@ -1,0 +1,16 @@
+;; -*- scheme -*-
+
+((license "GPL3")
+ (category misc)
+ (needs coops
+        dbus
+        filepath
+        list-utils
+        mailbox
+        miscmacros
+        regex ;; only needed for my .mowedline!
+        xft
+        xlib
+        xtypes)
+ (author "John J. Foerch")
+ (synopsis "an X status bar program"))

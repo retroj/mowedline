@@ -1,0 +1,8 @@
+;; -*- scheme -*-
+
+(compile mowedline.scm)
+(compile mowedline-client.scm)
+
+(install-program 'mowedline
+  '("mowedline" "mowedline-client")
+  '((version "0.2pre2")))
