@@ -5,4 +5,4 @@
 
 (install-program 'mowedline
   '("mowedline" "mowedline-client")
-  '((version "0.2pre2")))
+  '((version "0.2pre3")))
