@@ -69,10 +69,8 @@
                             interface: 'mowedline.interface)))
     (dbus:call dbus-context "log" symlist))))
 
-(let-values (((client-commands special-commands)
-              (icla:parse (command-line-arguments)
-                          (cdr (second (icla:groups)))
-                          (cdr (first (icla:groups))))))
+(let-values (((special-commands client-commands)
+              (icla:parse (command-line-arguments))))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))

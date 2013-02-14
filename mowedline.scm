@@ -790,10 +790,8 @@
   (make <window> 'widgets (reverse! *default-widgets*))
   (set! *default-widgets* (list))))
 
-(let-values (((server-commands special-commands)
-              (icla:parse (command-line-arguments)
-                          (cdr (second (icla:groups)))
-                          (cdr (first (icla:groups))))))
+(let-values (((special-commands server-commands)
+              (icla:parse (command-line-arguments))))
   (cond
    ((not (null? special-commands))
     (let ((cmd (first special-commands)))
