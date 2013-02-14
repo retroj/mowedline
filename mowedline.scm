@@ -26,6 +26,7 @@
      (prefix dbus dbus:)
      extras
      filepath
+     (prefix imperative-command-line-a icla:)
      list-utils
      lolevel
      mailbox
@@ -37,9 +38,6 @@
                   xrectangle-x xrectangle-y
                   xrectangle-width xrectangle-height)
      xtypes)
-
-(include "imperative-command-line-a")
-(import (prefix imperative-command-line-a icla:))
 
 (include "llog")
 (import llog)

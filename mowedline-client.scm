@@ -19,10 +19,8 @@
 
 (use srfi-1
      extras
-     (prefix dbus dbus:))
-
-(include "imperative-command-line-a")
-(import (prefix imperative-command-line-a icla:))
+     (prefix dbus dbus:)
+     (prefix imperative-command-line-a icla:))
 
 (include "version")
 

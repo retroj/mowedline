@@ -5,6 +5,7 @@
  (needs coops
         dbus
         filepath
+        imperative-command-line-a
         list-utils
         mailbox
         miscmacros
