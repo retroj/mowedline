@@ -3,9 +3,9 @@
 ((license "GPL3")
  (category misc)
  (needs coops
-        dbus
+        (dbus "0.92")
         filepath
-        imperative-command-line-a
+        (imperative-command-line-a "0.2")
         list-utils
         mailbox
         miscmacros
