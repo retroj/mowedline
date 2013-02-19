@@ -654,7 +654,7 @@
 
 (define bypass-startup-script (make-parameter #f))
 
-(define (start-server commands)
+(define (start-server)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
@@ -664,10 +664,6 @@
 
     (define (quit . params)
       (set! done #t))
-
-    ;; process server commands
-    (for-each (lambda (cmd) ((icla:callinfo-thunk cmd)))
-              commands)
 
     (unless (null? *default-widgets*)
       (make <window> 'widgets (reverse! *default-widgets*))
@@ -790,17 +786,5 @@
   (make <window> 'widgets (reverse! *default-widgets*))
   (set! *default-widgets* (list))))
 
-(let-values (((special-commands server-commands)
-              (icla:parse (command-line-arguments))))
-  (cond
-   ((not (null? special-commands))
-    (let ((cmd (first special-commands)))
-      ((icla:callinfo-thunk cmd)))
-    (unless (and (null? (rest special-commands))
-                 (null? server-commands))
-      (printf "~%Warning: the following commands were ignored:~%")
-      (for-each
-       (lambda (x) (printf "  ~S~%" (cons (icla:callinfo-name x) (icla:callinfo-args x))))
-       (append! (rest special-commands) server-commands))))
-   (else
-    (start-server server-commands))))
+(when (icla:parse (command-line-arguments))
+  (start-server))

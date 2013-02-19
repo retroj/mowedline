@@ -5,7 +5,7 @@
  (needs coops
         (dbus "0.92")
         filepath
-        (imperative-command-line-a "0.2")
+        (imperative-command-line-a "0.3")
         list-utils
         mailbox
         miscmacros

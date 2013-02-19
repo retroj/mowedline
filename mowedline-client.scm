@@ -26,10 +26,6 @@
 
 (define rest cdr)
 
-(define (start-client commands)
-  (for-each (lambda (cmd) ((icla:callinfo-thunk cmd)))
-            commands))
-
 (icla:help-heading
  (sprintf "mowedline-client version ~A, by John J. Foerch" version))
 
@@ -69,17 +65,4 @@
                             interface: 'mowedline.interface)))
     (dbus:call dbus-context "log" symlist))))
 
-(let-values (((special-commands client-commands)
-              (icla:parse (command-line-arguments))))
-  (cond
-   ((not (null? special-commands))
-    (let ((cmd (first special-commands)))
-      ((icla:callinfo-thunk cmd)))
-    (unless (and (null? (rest special-commands))
-                 (null? client-commands))
-      (printf "~%Warning: the following commands were ignored:~%")
-      (for-each
-       (lambda (x) (printf "  ~S~%" (cons (icla:callinfo-name x) (icla:callinfo-args x))))
-       (append! (rest special-commands) client-commands))))
-   (else
-    (start-client client-commands))))
+(icla:parse (command-line-arguments))
