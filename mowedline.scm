@@ -757,8 +757,7 @@
 (icla:help-heading
  (sprintf "mowedline version ~A, by John J. Foerch" version))
 
-(icla:add-command-group
- "SERVER OPTIONS"
+(icla:define-command-group server-options
  ((q)
   doc: "bypass .mowedline"
   (bypass-startup-script #t))

@@ -31,8 +31,7 @@
 (icla:help-heading
  (sprintf "mowedline-client version ~A, by John J. Foerch" version))
 
-(icla:add-command-group
- "CLIENT OPTIONS"
+(icla:define-command-group client-options
  ((quit)
   doc: "quit the program"
   (dbus:call dbus-context "quit"))
