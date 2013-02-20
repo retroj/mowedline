@@ -24,7 +24,9 @@
 
 (include "version")
 
-(define rest cdr)
+(define dbus-context
+  (dbus:make-context service: 'mowedline.server
+                     interface: 'mowedline.interface))
 
 (icla:help-heading
  (sprintf "mowedline-client version ~A, by John J. Foerch" version))
@@ -33,36 +35,24 @@
  "CLIENT OPTIONS"
  ((quit)
   doc: "quit the program"
-  (let ((dbus-context
-         (dbus:make-context service: 'mowedline.server
-                            interface: 'mowedline.interface)))
-    (dbus:call dbus-context "quit")))
+  (dbus:call dbus-context "quit"))
 
  ((read widget)
   doc: "updates widget by reading lines from stdin"
-  (let ((dbus-context
-         (dbus:make-context service: 'mowedline.server
-                            interface: 'mowedline.interface)))
-    (let loop ()
-      (let ((line (read-line (current-input-port))))
-        (unless (eof-object? line)
-          (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
-            (printf "widget not found, ~S~%" widget))
-          (loop))))))
+  (let loop ()
+    (let ((line (read-line (current-input-port))))
+      (unless (eof-object? line)
+        (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+          (printf "widget not found, ~S~%" widget))
+        (loop)))))
 
  ((update widget value)
   doc: "updates widget with value"
-  (let ((dbus-context
-         (dbus:make-context service: 'mowedline.server
-                            interface: 'mowedline.interface)))
-    (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
-      (printf "widget not found, ~S~%" widget))))
+  (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+    (printf "widget not found, ~S~%" widget)))
 
  ((log symlist)
   doc: "enable or disable logging; [+-]SYM1,[+-]SYM2,..."
-  (let ((dbus-context
-         (dbus:make-context service: 'mowedline.server
-                            interface: 'mowedline.interface)))
-    (dbus:call dbus-context "log" symlist))))
+  (dbus:call dbus-context "log" symlist)))
 
 (icla:parse (command-line-arguments))
