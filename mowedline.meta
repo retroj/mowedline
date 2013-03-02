@@ -9,7 +9,6 @@
         list-utils
         mailbox
         miscmacros
-        regex ;; only needed for my .mowedline!
         xft
         xlib
         xtypes)

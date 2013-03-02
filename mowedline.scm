@@ -39,7 +39,6 @@
      mailbox
      miscmacros
      posix
-     regex ;; only needed for my .mowedline!
      xft
      (except xlib make-xrectangle
                   xrectangle-x xrectangle-y
