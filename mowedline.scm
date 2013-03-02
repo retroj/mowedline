@@ -675,11 +675,13 @@
       (make <window> 'widgets (reverse! *default-widgets*))
       (set! *default-widgets* (list)))
 
-    (if* (and (not (bypass-startup-script))
-              (find file-read-access?
-                    (L (filepath:join-path (L "~" ".mowedline"))
-                       (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))
-         (load it))
+    (and-let* ((_ (not (bypass-startup-script)))
+               (path
+                (find file-read-access?
+                      (L (filepath:join-path (L "~" ".mowedline"))
+                         (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))
+      (eval '(import mowedline))
+      (load path))
 
     (when (null? *windows*)
       (make <window>
