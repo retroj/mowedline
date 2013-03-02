@@ -1,6 +1,11 @@
 ;; -*- scheme -*-
 
-(compile mowedline.scm)
+(run (chicken -to-stdout -emit-all-import-libraries mowedline.scm >/dev/null))
+(run (cat llog.import.scm mowedline.import.scm > all.import.scm))
+(compile -o mowedline all.import.scm
+         -postlude ,(qs (qs "(include \"mowedline.scm\")")))
+(run (rm *.import.*))
+
 (compile mowedline-client.scm)
 
 (install-program 'mowedline

@@ -15,10 +15,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
+(include "llog")
+
+(module mowedline
+    *
+
 (import chicken scheme foreign)
 
 (use srfi-1
      srfi-4 ;; homogeneous numeric vectors
+     srfi-13 ;; string
+     srfi-14 ;; character sets
      srfi-18 ;; threads
      srfi-69 ;; hash tables
      coops
@@ -39,7 +46,6 @@
                   xrectangle-width xrectangle-height)
      xtypes)
 
-(include "llog")
 (import llog)
 
 (include "version")
@@ -787,3 +793,5 @@
 
 (when (icla:parse (command-line-arguments))
   (start-server))
+
+)
