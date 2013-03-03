@@ -38,6 +38,7 @@
      lolevel
      mailbox
      miscmacros
+     ports
      posix
      xft
      (except xlib make-xrectangle
@@ -629,6 +630,32 @@
                       result)))
               '()
               (reverse (slot-value widget 'flags))))))))
+
+
+;; Map
+;;
+(define-class <map> (<text-widget>)
+  ((data initform: (make-hash-table))))
+
+(define-method (widget-update (widget <map>) params)
+  (let ((pair (with-input-from-string
+                  (first params)
+                (lambda ()
+                  (let* ((fst (read))
+                         (snd (read)))
+                    (list fst snd))))))
+    (hash-table-set! (slot-value widget 'data)
+                     (first pair) (second pair))
+    (set!
+     (slot-value widget 'text)
+     ((slot-value widget 'format)
+      (hash-table-fold
+       (slot-value widget 'data)
+       (lambda (k v a)
+         (string-append (->string k) "=" (->string v)
+                        (if (string-null? a) "" ",") a))
+       "")
+      ))))
 
 
 ;;;
