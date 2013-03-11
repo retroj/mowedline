@@ -634,8 +634,13 @@
 
 ;; Map
 ;;
+(define (map-format-pair k v)
+  (string-append (->string k) "=" (->string v)))
+
 (define-class <map> (<text-widget>)
-  ((data initform: (make-hash-table))))
+  ((data initform: (make-hash-table))
+   (format-pair initform: map-format-pair)
+   (separator initform: ",")))
 
 (define-method (widget-update (widget <map>) params)
   (let ((pair (with-input-from-string
@@ -652,10 +657,15 @@
       (hash-table-fold
        (slot-value widget 'data)
        (lambda (k v a)
-         (string-append (->string k) "=" (->string v)
-                        (if (string-null? a) "" ",") a))
-       "")
-      ))))
+         (let ((part ((slot-value widget 'format-pair) k v)))
+           (if part
+               (string-append part
+                              (if (string-null? a)
+                                  ""
+                                  (slot-value widget 'separator))
+                              a)
+               a)))
+       "")))))
 
 
 ;;;
