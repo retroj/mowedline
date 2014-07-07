@@ -2,8 +2,12 @@
 ;;; mowedline.el --- elisp utilities for using mowedline
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2013  John J. Foerch
-;;
+;; Copyright (C) 2011-2014  John J. Foerch
+
+;; Author: John Foerch <jjfoerch@earthlink.net>
+;; Version: 0.2
+;; Date: 2014-07-07
+
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -19,11 +23,30 @@
 
 ;;; Commentary:
 
-;; This file provides `mowedline-colorize', a utility that converts a
-;; propertied Emacs string into a string of mowedline markup, preserving
-;; colors.
+;; This package provides utilities for interacting with the status bar
+;; program mowedline.
+;;
+;; - mowedline-update: calls mowedline-client update for the given widget
+;;       and value.
+;;
+;; - mowedline-colorize: converts a propertied Emacs string into a string
+;;       of mowedline markup, preserving foreground colors.
+;;
 
 ;;; Code:
+
+(defvar mowedline-client "mowedline-client"
+  "Name of the mowedline-client executable.")
+
+(defun mowedline-update (widget value)
+  "Call mowedline-client update for the given widget and value."
+  (call-process
+   mowedline-client nil 0 nil
+   "update"
+   (if (symbolp widget)
+       (symbol-name widget)
+     widget)
+   value))
 
 (defun mowedline-string-break-by-property (str prop)
   (let ((len (length str))
