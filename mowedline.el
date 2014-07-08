@@ -1,4 +1,3 @@
-
 ;;; mowedline.el --- elisp utilities for using mowedline
 
 ;; This file is part of mowedline.
