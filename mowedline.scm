@@ -231,7 +231,8 @@
    (width initform: #f)
    (baseline initform: #f)
    (widgets initform: (list))
-   (xwindow)))
+   (xwindow)
+   (fonts initform: (list))))
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
@@ -314,6 +315,17 @@
       (xlowerwindow *display* xwindow))
 
     (push! window *windows*)))
+
+(define (window-get-create-font window font)
+  (let ((fonts (slot-value window 'fonts)))
+    (or (alist-ref font fonts)
+        (let ((fontref (xft-font-open/name *display*
+                                           (slot-value window 'screen)
+                                           font)))
+          (set! (slot-value window 'fonts)
+                (cons (cons font fontref)
+                      fonts))
+          fontref))))
 
 (define window-expose
   (case-lambda
@@ -482,22 +494,11 @@
    (color initform: (text-widget-color))
    (format initform: (text-widget-format))))
 
-(define-method (widget-set-window! (widget <text-widget>) (window <window>))
-  (call-next-method)
-  ;; initialize the font here so that the preferred height of the widget
-  ;; can be queried as early as possible.
-  (let ((font (slot-value widget 'font)))
-    (when (string? font)
-      (set! (slot-value widget 'font)
-            (xft-font-open/name *display*
-                                (slot-value window 'screen)
-                                font)))))
-
 (define-method (widget-draw (widget <text-widget>) region)
   (let* ((window (slot-value widget 'window))
          (xwindow (slot-value window 'xwindow))
          (wrect (slot-value widget 'xrectangle))
-         (font (slot-value widget 'font))
+         (font (window-get-create-font window (slot-value widget 'font)))
          (x (xrectangle-x wrect))
          (baseline (slot-value window 'baseline))
          (visual (xdefaultvisual *display* (xdefaultscreen *display*)))
@@ -514,35 +515,42 @@
                      (xrectangle-width wrect)
                      (xrectangle-height wrect))
       (let walk ((term (slot-value widget 'text))
+                 (fonts (list font))
                  (colors (list color)))
         (cond
          ((string? term)
-          (xft-draw-string draw font (first colors) x baseline term)
-          (inc! x (xglyphinfo-xoff (xft-text-extents *display* font term))))
+          (xft-draw-string draw (first fonts) (first colors) x baseline term)
+          (inc! x (xglyphinfo-xoff (xft-text-extents *display* (first fonts) term))))
          ((pair? term)
           (cond
            ((eq? 'button (first term))
             (let ((thunk (second term))
                   (buttonx1 x))
-              (walk (cddr term) colors)
+              (walk (cddr term) fonts colors)
               (push! (make-button (make-xrectangle buttonx1 0
                                                    (- x buttonx1)
                                                    (xrectangle-height wrect))
                                   thunk)
                      (slot-value widget 'buttons))))
            ((eq? 'color (first term))
-            (walk (cddr term) (cons (make-color (second term)) colors)))
+            (walk (cddr term) fonts (cons (make-color (second term)) colors)))
+           ((eq? 'font (first term))
+            (walk (cddr term) (cons (window-get-create-font window (second term)) fonts) colors))
            (else
-            (walk (first term) colors)
-            (walk (rest term) colors)))))))))
+            (walk (first term) fonts colors)
+            (walk (rest term) fonts colors)))))))))
 
 (define-method (widget-preferred-baseline (widget <text-widget>))
-  (xftfont-ascent (slot-value widget 'font)))
+  (xftfont-ascent (window-get-create-font
+                   (slot-value widget 'window)
+                   (slot-value widget 'font))))
 
 (define-method (widget-preferred-height (widget <text-widget>))
   ;; i find even common fonts extend a pixel lower than their
   ;; declared descent.  tsk tsk.
-  (let ((font (slot-value widget 'font)))
+  (let ((font (window-get-create-font
+               (slot-value widget 'window)
+               (slot-value widget 'font))))
     (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
@@ -550,7 +558,9 @@
       #f
       (xglyphinfo-xoff
        (xft-text-extents *display* 
-                         (slot-value widget 'font)
+                         (window-get-create-font
+                          (slot-value widget 'window)
+                          (slot-value widget 'font))
                          (text-widget-raw-text widget)))))
 
 (define-method (widget-update (widget <text-widget>) params)
