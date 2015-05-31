@@ -573,7 +573,7 @@
      ((null? term) "")
      ((string? term) term)
      ((and (pair? term)
-           (memq (first term) '(color button)))
+           (memq (first term) '(color button font)))
       (walk (cddr term)))
      ((pair? term)
       (string-append
