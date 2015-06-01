@@ -493,6 +493,9 @@
    (color initform: (text-widget-color))
    (format initform: (text-widget-format))))
 
+(define (widget:text . args)
+  (apply make <text-widget> args))
+
 (define-method (widget-draw (widget <text-widget>) region)
   (let* ((window (slot-value widget 'window))
          (xwindow (slot-value window 'xwindow))
@@ -599,6 +602,9 @@
 (define-class <clock> (<text-widget>)
   ((time-format initform: "%a %b %e %H:%M %Z %Y")))
 
+(define (widget:clock . args)
+  (apply make <clock> args))
+
 (define-method (widget-init (widget <clock>))
   (call-next-method)
   (thread-start! (make-thread (clock-thread widget))))
@@ -610,6 +616,9 @@
   ((flags initform: '())
    (curflags initform: '())
    (text initform: '())))
+
+(define (widget:flags . args)
+  (apply make <flags> args))
 
 (define-method (widget-update (widget <flags>) params)
   (let* ((changes (first params))
@@ -650,6 +659,9 @@
   ((data initform: (make-hash-table))
    (format-pair initform: map-format-pair)
    (separator initform: ",")))
+
+(define (widget:map . args)
+  (apply make <map> args))
 
 (define-method (widget-update (widget <map>) params)
   (let ((pair (with-input-from-string
