@@ -1,6 +1,6 @@
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2013  John J. Foerch
+;; Copyright (C) 2011-2015  John J. Foerch
 ;;
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -50,13 +50,7 @@
 
 (include "version")
 
-
-;;;
-;;; Language
-;;;
-
-(define L list)
-(define rest cdr)
+(include "utils")
 
 
 ;;;
@@ -233,6 +227,11 @@
    (widgets initform: (list))
    (xwindow)
    (fonts initform: (list))))
+
+(define (window . args)
+  (receive (props widgets)
+      (split-properties args)
+    (apply make <window> 'widgets widgets props)))
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
