@@ -62,3 +62,16 @@
        (cons* #f '() '())
        lst)
     (values (reverse! props) (reverse! tail))))
+
+;; text-maybe-pad-left prepends a space on a string or mowedline markup
+;; structure iff the text is non-null.
+;;
+(define (text-maybe-pad-left text)
+  (cond
+   ((and (string? text)
+         (not (string-null? text)))
+    (string-append " " text))
+   ((and (pair? text)
+         (not (null? text)))
+    (cons " " text))
+   (else text)))
