@@ -25,8 +25,12 @@
 ;; This package provides utilities for interacting with the status bar
 ;; program mowedline.
 ;;
-;; - mowedline-update: calls mowedline-client update for the given widget
-;;       and value.
+;; - mowedline-update: performs a mowedline update for the given widget
+;;       and value by dispatching to the function given by
+;;       `mowedline-update-function' (default `mowedline-update/client').
+;;
+;; - mowedline-update/client: calls mowedline update via the
+;;       mowedline-client program.
 ;;
 ;; - mowedline-update/dbus: calls mowedline update via dbus directly for
 ;;       the given widget and value.
@@ -42,7 +46,7 @@
 (defvar mowedline-client "mowedline-client"
   "Name of the mowedline-client executable.")
 
-(defun mowedline-update (widget value)
+(defun mowedline-update/client (widget value)
   "Call mowedline-client update for the given widget and value."
   (call-process
    mowedline-client nil 0 nil
@@ -53,10 +57,23 @@
    value))
 
 (defun mowedline-update/dbus (widget value)
+  "Perform a mowedline update for the given widget and value
+directly via dbus."
   (dbus-call-method
    :session "mowedline.server" "/"
    "mowedline.interface" "update"
-   widget value))
+   (if (symbolp widget)
+       (symbol-name widget)
+     widget)
+   value))
+
+(defvar mowedline-update-function 'mowedline-update/client)
+
+(defun mowedline-update (widget value)
+  "Perform a mowedline update for the given widget and value by
+dispatching to the update function given by
+`mowedline-update-function`."
+  (funcall mowedline-update-function widget value))
 
 (defun mowedline-string-break-by-property (str prop)
   (let ((len (length str))
