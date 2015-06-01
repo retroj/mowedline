@@ -1,11 +1,11 @@
 ;;; mowedline.el --- elisp utilities for using mowedline
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2014  John J. Foerch
+;; Copyright (C) 2011-2015  John J. Foerch
 
 ;; Author: John Foerch <jjfoerch@earthlink.net>
-;; Version: 0.2
-;; Date: 2014-07-07
+;; Version: 0.3
+;; Date: 2015-06-01
 
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,11 +28,16 @@
 ;; - mowedline-update: calls mowedline-client update for the given widget
 ;;       and value.
 ;;
+;; - mowedline-update/dbus: calls mowedline update via dbus directly for
+;;       the given widget and value.
+;;
 ;; - mowedline-colorize: converts a propertied Emacs string into a string
 ;;       of mowedline markup, preserving foreground colors.
 ;;
 
 ;;; Code:
+
+(require 'dbus)
 
 (defvar mowedline-client "mowedline-client"
   "Name of the mowedline-client executable.")
@@ -46,6 +51,12 @@
        (symbol-name widget)
      widget)
    value))
+
+(defun mowedline-update/dbus (widget value)
+  (dbus-call-method
+   :session "mowedline.server" "/"
+   "mowedline.interface" "update"
+   widget value))
 
 (defun mowedline-string-break-by-property (str prop)
   (let ((len (length str))
