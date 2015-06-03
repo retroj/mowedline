@@ -556,14 +556,29 @@
     (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
-  (if (slot-value widget 'flex)
-      #f
+  (let ((window (slot-value widget 'window)))
+    (define (x-extent str font)
       (xglyphinfo-xoff
        (xft-text-extents *display* 
-                         (window-get-create-font
-                          (slot-value widget 'window)
-                          (slot-value widget 'font))
-                         (text-widget-raw-text widget)))))
+                         (window-get-create-font window font)
+                         str)))
+    (if (slot-value widget 'flex)
+        #f
+        (let walk ((term (slot-value widget 'text))
+                   (font (slot-value widget 'font)))
+          (cond
+           ((null? term) 0)
+           ((string? term) (x-extent term font))
+           ((pair? term)
+            (cond
+             ((eq? 'font (first term))
+              (walk (cddr term) (second term)))
+             ((memq (first term) '(color button))
+              (walk (cddr term) font))
+             (else
+              (+ (walk (first term) font)
+                 (walk (rest term) font)))))
+           (else 0))))))
 
 (define-method (widget-update (widget <text-widget>) params)
   (set! (slot-value widget 'text)
