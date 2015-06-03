@@ -584,20 +584,6 @@
   (set! (slot-value widget 'text)
         ((slot-value widget 'format) (first params))))
 
-(define (text-widget-raw-text widget)
-  (let walk ((term (slot-value widget 'text)))
-    (cond
-     ((null? term) "")
-     ((string? term) term)
-     ((and (pair? term)
-           (memq (first term) '(color button font)))
-      (walk (cddr term)))
-     ((pair? term)
-      (string-append
-       (walk (first term))
-       (walk (rest term))))
-     (else ""))))
-
 
 ;; Clock
 ;;
