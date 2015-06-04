@@ -754,7 +754,8 @@
         'widgets
         (L (make <text-widget>
              'name "default"
-             'flex 1))))
+             'flex 1
+             'text "mowedline"))))
 
     (let ((dbus-context
            (dbus:make-context service: 'mowedline.server
