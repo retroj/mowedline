@@ -65,6 +65,8 @@
 
 (define *default-widgets* (list))
 
+(define *command-line-windows* (list))
+
 (define *internal-events* (make-mailbox))
 
 
@@ -729,6 +731,11 @@
     (define (quit . params)
       (set! done #t))
 
+    (for-each
+     (lambda (widgets) (make <window> 'widgets widgets))
+     *command-line-windows*)
+    (set! *command-line-windows* (list))
+
     (unless (null? *default-widgets*)
       (make <window> 'widgets (reverse! *default-widgets*))
       (set! *default-widgets* (list)))
@@ -848,7 +855,8 @@
   (window-position (string->symbol value)))
  ((window)
   doc: "make a window containing the foregoing widgets"
-  (make <window> 'widgets (reverse! *default-widgets*))
+  (set! *command-line-windows*
+        (cons (reverse! *default-widgets*) *command-line-windows*))
   (set! *default-widgets* (list))))
 
 (when (icla:parse (command-line-arguments))
