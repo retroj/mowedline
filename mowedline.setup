@@ -1,12 +1,17 @@
 ;; -*- scheme -*-
 
 (run (chicken -to-stdout -emit-all-import-libraries mowedline.scm >/dev/null))
-(compile mowedline.scm
+(compile -s mowedline.scm
          -prologue llog.import.scm
          -prologue mowedline.import.scm)
-(run (rm *.import.*))
+
+(compile mowedline-cli.scm -o mowedline)
 
 (compile mowedline-client.scm)
+
+(install-extension 'mowedline
+  '("mowedline.so")
+  '((version "0.2.7")))
 
 (install-program 'mowedline
   '("mowedline" "mowedline-client")

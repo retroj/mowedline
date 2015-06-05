@@ -721,7 +721,7 @@
 
 (define bypass-startup-script (make-parameter #f))
 
-(define (start-server)
+(define (mowedline)
   (set! *display* (xopendisplay #f))
   (assert *display*)
 
@@ -860,8 +860,5 @@
   (set! *command-line-windows*
         (cons (reverse! *default-widgets*) *command-line-windows*))
   (set! *default-widgets* (list))))
-
-(when (icla:parse (command-line-arguments))
-  (start-server))
 
 )
