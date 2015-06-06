@@ -394,14 +394,20 @@
                     wid))
                 widgets))
          (remainder (- (slot-value window 'width) widsum))
-         (flexunit (if (> flexsum 0) (/ remainder flexsum) 0))
          (x 0)
          (rmin #f)  ;; redraw range
          (rmax #f))
+    (define (flex-allocate flex)
+      (if (zero? flexsum)
+          #f
+          (let ((flexwid (inexact->exact (round (* (/ flex flexsum) remainder)))))
+            (set! remainder (- remainder flexwid))
+            (set! flexsum (- flexsum flex))
+            flexwid)))
     (for-each
      (lambda (widget wid)
        (let* ((rect (slot-value widget 'xrectangle))
-              (wid (or wid (* flexunit (slot-value widget 'flex))))
+              (wid (or wid (flex-allocate (slot-value widget 'flex))))
               (oldx (xrectangle-x rect))
               (oldwid (xrectangle-width rect)))
          (unless (and (= oldx x)
