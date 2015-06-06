@@ -3,3 +3,5 @@
 /scratch
 *.c
 *.o
+*.so
+*.import.*
