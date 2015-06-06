@@ -510,8 +510,9 @@
   (apply make <spacer> args))
 
 (define-method (widget-preferred-width (widget <spacer>))
-  (or (slot-value widget 'width)
-      (call-next-method)))
+  (if (slot-value widget 'flex)
+      #f
+      (or (slot-value widget 'width) 1)))
 
 
 ;; Text Widget
