@@ -474,6 +474,23 @@
       #f
       1))
 
+(define-method (widget-draw (widget <widget>) region)
+  (let* ((window (slot-value widget 'window))
+         (xwindow (slot-value window 'xwindow))
+         (wrect (slot-value widget 'xrectangle))
+         (x (xrectangle-x wrect))
+         (visual (xdefaultvisual *display* (xdefaultscreen *display*)))
+         (colormap (xdefaultcolormap *display* (xdefaultscreen *display*)))
+         (draw (xftdraw-create *display* xwindow visual colormap)))
+    (define (make-color c)
+      (apply make-xftcolor *display* visual colormap
+             (ensure-list c)))
+    (let ((background-color (make-color (slot-value widget 'background-color))))
+      (xftdraw-set-clip! draw region)
+      (xft-draw-rect draw background-color x 0
+                     (xrectangle-width wrect)
+                     (xrectangle-height wrect)))))
+
 (define (widget-button-at-position widget x)
   (find
    (lambda (button)
@@ -482,6 +499,19 @@
             (< x (+ (xrectangle-x rect)
                     (xrectangle-width rect))))))
    (slot-value widget 'buttons)))
+
+
+;; Spacer
+;;
+(define-class <spacer> (<widget>)
+  ((width initform: #f)))
+
+(define (widget:spacer . args)
+  (apply make <spacer> args))
+
+(define-method (widget-preferred-width (widget <spacer>))
+  (or (slot-value widget 'width)
+      (call-next-method)))
 
 
 ;; Text Widget
