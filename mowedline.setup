@@ -5,12 +5,16 @@
          -prologue llog.import.scm
          -prologue mowedline.import.scm)
 
+(compile -s mowedline.import.scm)
+
+(compile -s llog.import.scm)
+
 (compile mowedline-cli.scm -o mowedline)
 
 (compile mowedline-client.scm)
 
 (install-extension 'mowedline
-  '("mowedline.so")
+  '("mowedline.so" "mowedline.import.so" "llog.import.so")
   '((version "0.2.7")))
 
 (install-program 'mowedline
