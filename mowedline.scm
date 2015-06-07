@@ -227,6 +227,10 @@
    (height initform: #f)
    (width initform: #f)
    (baseline initform: #f)
+   (margin-top initform: 0)
+   (margin-right initform: 0)
+   (margin-bottom initform: 0)
+   (margin-left initform: 0)
    (widgets initform: (list))
    (xwindow)
    (fonts initform: (list))))
@@ -243,17 +247,21 @@
   (let* ((screen (slot-value window 'screen))
          (shei (xdisplayheight *display* screen))
          (position (slot-value window 'position))
-         (width (or (slot-value window 'width) (xdisplaywidth *display* screen)))
+         (width (or (slot-value window 'width)
+                    (- (xdisplaywidth *display* screen)
+                       (slot-value window 'margin-left)
+                       (slot-value window 'margin-right))))
          (height (or (slot-value window 'height)
                      (fold max 1 (map widget-preferred-height
                                       (slot-value window 'widgets)))))
          (window-top (case position
-                       ((bottom) (- shei height))
-                       (else 0)))
+                       ((bottom) (- shei (slot-value window 'margin-bottom) height))
+                       (else (slot-value window 'margin-top))))
          (xwindow (xcreatesimplewindow
                    *display*
                    (xrootwindow *display* screen)
-                   0 window-top width height 0
+                   (slot-value window 'margin-left)
+                   window-top width height 0
                    (xblackpixel *display* screen)
                    (xwhitepixel *display* screen))))
     (assert xwindow)
@@ -303,11 +311,12 @@
     ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
     ;;
     ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
-                         (make-numbers-property
-                          (if (eq? position 'bottom)
-                              (list 0 0 0 height 0 0 0 0 0 0 0 0)
-                              (list 0 0 height 0 0 0 0 0 0 0 0 0))))
+    (let ((strut-height (+ height (slot-value window 'margin-top) (slot-value window 'margin-bottom))))
+      (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
+                           (make-numbers-property
+                            (if (eq? position 'bottom)
+                                (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
+                                (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
 
     (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
       (let-location ((atm unsigned-long d-atom))
