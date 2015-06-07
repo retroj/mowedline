@@ -210,8 +210,9 @@
 ;;;
 ;;; Window
 ;;;
-(define window-position (make-parameter 'top))
+
 (define window-lower (make-parameter #t))
+(define window-position (make-parameter 'top))
 
 (define window-get-next-id
   (let ((last -1))
