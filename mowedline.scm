@@ -861,6 +861,9 @@
       (thread-terminate! internal-events-thread)))
   (xclosedisplay *display*))
 
+(define (mowedline-start)
+  (thread-start! (lambda () (mowedline) (exit))))
+
 
 ;;;
 ;;; Command Line
