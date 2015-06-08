@@ -311,7 +311,8 @@
     ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
     ;;
     ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (let ((strut-height (+ height (slot-value window 'margin-top) (slot-value window 'margin-bottom))))
+    (let ((strut-height (+ height (slot-value window 'margin-top)
+                           (slot-value window 'margin-bottom))))
       (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
                            (make-numbers-property
                             (if (eq? position 'bottom)
