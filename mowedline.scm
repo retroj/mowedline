@@ -325,6 +325,15 @@
     (when (window-lower)
       (xlowerwindow *display* xwindow))
 
+    (xselectinput *display*
+                  (slot-value window 'xwindow)
+                  (bitwise-ior EXPOSUREMASK
+                               BUTTONPRESSMASK
+                               STRUCTURENOTIFYMASK))
+    (xmapwindow *display* (slot-value window 'xwindow))
+    (xnextevent *display* (make-xevent))
+    (window-expose window)
+
     (push! window *windows*)))
 
 (define (window-get-create-font window font)
@@ -811,18 +820,6 @@
       (dbus:register-method dbus-context "update" update)
       (dbus:register-method dbus-context "quit" quit)
       (dbus:register-method dbus-context "log" log-watch))
-
-    (for-each
-     (lambda (w)
-       (xselectinput *display*
-                     (slot-value w 'xwindow)
-                     (bitwise-ior EXPOSUREMASK
-                                  BUTTONPRESSMASK
-                                  STRUCTURENOTIFYMASK))
-       (xmapwindow *display* (slot-value w 'xwindow))
-       (xnextevent *display* event)
-       (window-expose w))
-     *windows*)
 
     (define (x-eventloop)
       (unless (> (xpending *display*) 0)
