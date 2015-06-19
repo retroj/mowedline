@@ -54,4 +54,8 @@
   doc: "enable or disable logging; [+-]SYM1,[+-]SYM2,..."
   (dbus:call dbus-context "log" symlist)))
 
-(icla:parse (command-line-arguments))
+(condition-case
+    (icla:parse (command-line-arguments))
+  [ex ()
+      (printf "Error: ~A~%" (get-condition-property ex 'exn 'message))
+      (icla:parse '("-help"))])
