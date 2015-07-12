@@ -69,6 +69,7 @@
 
 (define *internal-events* (make-mailbox))
 
+(define user-config-file (make-parameter ""))
 
 ;;;
 ;;; Window Property Utils
@@ -800,7 +801,8 @@
     (and-let* ((_ (not (bypass-startup-script)))
                (path
                 (find file-read-access?
-                      (L (filepath:join-path (L "~" ".mowedline"))
+                      (L (user-config-file)
+                         (filepath:join-path (L "~" ".mowedline"))
                          (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))
       (eval '(import mowedline))
       (load path))
@@ -902,6 +904,9 @@
  ((position value)
   doc: "set the default window position (top or bottom)"
   (window-position (string->symbol value)))
+ ((config path)
+  doc: "use a different configuration file"
+  (user-config-file path))
  ((window)
   doc: "make a window containing the foregoing widgets"
   (set! *command-line-windows*
