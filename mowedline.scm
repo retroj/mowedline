@@ -69,7 +69,7 @@
 
 (define *internal-events* (make-mailbox))
 
-(define user-config-file (make-parameter ""))
+(define user-config-file (make-parameter #f))
 
 ;;;
 ;;; Window Property Utils
@@ -800,10 +800,10 @@
 
     (and-let* ((_ (not (bypass-startup-script)))
                (path
-                (find file-read-access?
-                      (L (user-config-file)
-                         (filepath:join-path (L "~" ".mowedline"))
-                         (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))
+                (or (user-config-file)
+                    (find file-read-access?
+                          (L (filepath:join-path (L "~" ".mowedline"))
+                             (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))))
       (eval '(import mowedline))
       (load path))
 
@@ -906,7 +906,11 @@
   (window-position (string->symbol value)))
  ((config path)
   doc: "use a different configuration file"
-  (user-config-file path))
+  (if (file-read-access? path)
+      (user-config-file path)
+      (begin
+        (printf "Error: Can't read file ~A~%" path)
+        (exit 1))))
  ((window)
   doc: "make a window containing the foregoing widgets"
   (set! *command-line-windows*
