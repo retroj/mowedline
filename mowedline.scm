@@ -53,6 +53,9 @@
 (include "utils")
 
 
+(foreign-declare "#include <X11/Xlib.h>")
+
+
 ;;;
 ;;; Globals
 ;;;
@@ -750,6 +753,121 @@
        "")))))
 
 
+;; Active Window Title
+;;
+(define *subscribers* #f)
+
+(define-class <active-window-title> (<text-widget>)
+  ())
+
+(define (widget:active-window-title . args)
+  (apply make <active-window-title> args))
+
+(define-method (widget-init (widget <active-window-title>))
+  ;; "subscribe" to _NET_ACTIVE_WINDOW?
+  (call-next-method)
+
+  (let* ((window (slot-value widget 'window))
+         (screen (slot-value window 'screen))
+         (root (xrootwindow *display* screen))
+         (net-active-window-atom
+          (xinternatom *display* "_NET_ACTIVE_WINDOW" 0)))
+
+    (set! *subscribers*
+          (list
+           (list (lambda (event)
+                   (and (= root (xevent-xany-window event))
+                        (= PROPERTYNOTIFY (xevent-type event))
+                        (= net-active-window-atom (xpropertyevent-atom event))))
+                 widget)))
+
+    ;;propertychange
+    ;;propertynotify event _NET_ACTIVE_WINDOW
+
+    ;;XXX: we need to make a general interface so that widgets are not
+    ;;     clobbering each other's eventmasks
+    #;(xselectinput *display* root
+                  (bitwise-ior PROPERTYCHANGEMASK))))
+
+(define-method (widget-update (widget <active-window-title>) params)
+  #t
+  ;; (xpropertyevent-state event) ;; PropertyNewValue or PropertyDeleted
+  #;(let* ((event (first params))
+         (root (xpropertyevent-window event))
+         (property (xinternatom *display* "_NET_ACTIVE_WINDOW" 0)))
+  (when (= (xpropertyevent-state event) PROPERTYNEWVALUE)
+      (print "propertynewvalue"))
+  (when (= (xpropertyevent-state event) PROPERTYDELETE)
+      (print "propertydelete"))
+  (let-location ((xa_ret_type unsigned-long)
+                   (ret_format int)
+                   (ret_nitems unsigned-long)
+                   (ret_bytes_after unsigned-long)
+                   (ret_window_id unsigned-c-string*))
+  (xgetwindowproperty *display* root property
+                          0 4 0
+                          ANYPROPERTYTYPE
+                          (location xa_ret_type)
+                          (location ret_format)
+                          (location ret_nitems)
+                          (location ret_bytes_after)
+                          (location ret_window_id))
+      (when (= NONE xa_ret_type) ;; property did not exist
+        (print "none"))
+  (let ((window-id
+             ((foreign-lambda* unsigned-long ((c-pointer data))
+                "unsigned long** longs = (unsigned long**)data;"
+                "C_return(longs[0][0]);")
+              (location ret_window_id)))
+            (property (xinternatom *display* "_NET_WM_NAME" 0)))
+        (cond
+         ((= NONE window-id)
+          (set! (slot-value widget 'text) ""))
+         (else
+          #t
+
+          (let-location ((ret_prop unsigned-c-string*))
+            (let ((result (xfetchname *display* window-id (location ret_prop))))
+              (if (not (zero? result))
+                  (set! (slot-value widget 'text) ret_prop)
+                  (set! (slot-value widget 'text) "")))
+            ((foreign-lambda* void ()
+               "XSetErrorHandler(NULL);"))
+            (xgetwindowproperty *display* window-id property
+                                0 1024 0
+                                ANYPROPERTYTYPE
+                                (location xa_ret_type)
+                                (location ret_format)
+                                (location ret_nitems)
+                                (location ret_bytes_after)
+                                (location ret_prop))
+            )))))))
+
+
+;; Meter
+;;
+;; (define-class <meter> (<widget>)
+;;   ((min initform: 0.0)
+;;    (max initform: 1.0)))
+
+;; (define (widget:meter . args)
+;;   (apply make <meter> args))
+
+;; ;; widget-draw
+;; ;; widget-preferred-height
+;; ;; widget-preferred-width
+;; ;; widget-preferred-baseline
+;; ;; widget-set-window!
+;; ;; widget-init
+
+;; (define-method (widget-update (widget <meter>) params)
+;;   ;; first params must be a number
+
+;;   ;; what if it's out of range?  warn? clip to range?
+;;   (first params))
+
+
+
 ;;;
 ;;; Server
 ;;;
@@ -826,29 +944,36 @@
       (unless (> (xpending *display*) 0)
         (thread-wait-for-i/o! x-fd input:))
       (xnextevent *display* event)
-      (select (xevent-type event)
-        ((CLIENTMESSAGE)
-         (set! done #t))
-        ((EXPOSE)
-         (let* ((xwindow (xexposeevent-window event))
-                (window (find (lambda (win)
-                                (equal? (slot-value win 'xwindow) xwindow))
-                              *windows*))
-                (x (xexposeevent-x event))
-                (y (xexposeevent-y event))
-                (width (xexposeevent-width event))
-                (height (xexposeevent-height event)))
-           (window-expose window (make-xrectangle x y width height))))
-        ((BUTTONPRESS)
-         (and-let* ((xwindow (xexposeevent-window event))
-                    (window (find (lambda (win)
-                                    (equal? (slot-value win 'xwindow) xwindow))
-                                  *windows*))
-                    (widget (window-widget-at-position
-                             window (xbuttonpressedevent-x event)))
-                    (button (widget-button-at-position
-                             widget (xbuttonpressedevent-x event))))
-           ((eval (button-thunk button))))))
+
+      (let ((xwindow (xevent-xany-window event)))
+        (select (xevent-type event)
+          ((CLIENTMESSAGE)
+           (print "done!")
+           (set! done #t))
+          ((EXPOSE)
+           (and-let* ((window (find (lambda (win)
+                                      (equal? (slot-value win 'xwindow) xwindow))
+                                    *windows*))
+                      (x (xexposeevent-x event))
+                      (y (xexposeevent-y event))
+                      (width (xexposeevent-width event))
+                      (height (xexposeevent-height event)))
+             (window-expose window (make-xrectangle x y width height))))
+          ((BUTTONPRESS)
+           (and-let* ((window (find (lambda (win)
+                                      (equal? (slot-value win 'xwindow) xwindow))
+                                    *windows*))
+                      (widget (window-widget-at-position
+                               window (xbuttonpressedevent-x event)))
+                      (button (widget-button-at-position
+                               widget (xbuttonpressedevent-x event))))
+             ((eval (button-thunk button)))))
+          (else
+           (for-each
+            (lambda (x)
+              (when ((first x) event)
+                (update (second x) event)))
+            *subscribers*))))
       (x-eventloop))
 
     (define (dbus-eventloop)

@@ -2,6 +2,8 @@
 
 (run (chicken -to-stdout -emit-all-import-libraries mowedline.scm >/dev/null))
 (compile -s mowedline.scm
+         -L "\"-L/usr/X11R6/lib -lX11\""
+         -C "\"-I/usr/X11R6/include\""
          -prologue llog.import.scm
          -prologue mowedline.import.scm)
 
@@ -18,5 +20,5 @@
   '((version "0.2.7")))
 
 (install-program 'mowedline
-  '("mowedline" "mowedline-client")
+  '("mowedline" #;"mowedline-client")
   '((version "0.2.7")))
