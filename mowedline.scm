@@ -225,6 +225,12 @@
       (inc! last)
       last)))
 
+(define (window-default-event-handlers)
+  (list
+   (L CLIENTMESSAGE window-handle-event/clientmessage)
+   (L EXPOSE window-handle-event/expose)
+   (L BUTTONPRESS window-handle-event/buttonpress)))
+
 (define-class <window> ()
   ((id initform: (window-get-next-id))
    (screen initform: (xdefaultscreen *display*))
@@ -238,7 +244,8 @@
    (margin-left initform: 0)
    (widgets initform: (list))
    (xwindow)
-   (fonts initform: (list))))
+   (fonts initform: (list))
+   (event-handlers initform: (window-default-event-handlers))))
 
 (define (window . args)
   (receive (props widgets)
@@ -459,25 +466,32 @@
                     (xrectangle-width wrect))))))
    (slot-value window 'widgets)))
 
+(define (window-handle-event/clientmessage window event)
+  ;;XXX: there may be important information in
+  ;;     xclientmessageevent-message_type
+  (quit))
+
+(define (window-handle-event/expose window event)
+  (and-let* ((x (xexposeevent-x event))
+             (y (xexposeevent-y event))
+             (width (xexposeevent-width event))
+             (height (xexposeevent-height event)))
+    (window-expose window (make-xrectangle x y width height))))
+
+(define (window-handle-event/buttonpress window event)
+  (and-let* ((widget (window-widget-at-position
+                      window (xbuttonpressedevent-x event)))
+             (button (widget-button-at-position
+                      widget (xbuttonpressedevent-x event))))
+    ((eval (button-thunk button)))))
+
 (define (window-handle-event window event)
-  (select (xevent-type event)
-    (((CLIENTMESSAGE)
-      (lambda ()
-        ;;XXX: there may be important information in
-        ;;     xclientmessageevent-message_type
-        (quit)))
-     ((EXPOSE)
-      (and-let* ((x (xexposeevent-x event))
-                 (y (xexposeevent-y event))
-                 (width (xexposeevent-width event))
-                 (height (xexposeevent-height event)))
-        (window-expose window (make-xrectangle x y width height))))
-     ((BUTTONPRESS)
-      (and-let* ((widget (window-widget-at-position
-                          window (xbuttonpressedevent-x event)))
-                 (button (widget-button-at-position
-                          widget (xbuttonpressedevent-x event))))
-        ((eval (button-thunk button))))))))
+  (and-let* ((handlers (alist-ref
+                        (xevent-type event)
+                        (slot-value window 'event-handlers))))
+    (for-each
+     (lambda (handler) (handler window event))
+     handlers)))
 
 
 ;;;
