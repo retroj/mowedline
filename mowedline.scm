@@ -72,7 +72,7 @@
 
 (define *internal-events* (make-mailbox))
 
-(define quit #f)
+(define quit #f) ;; will be bound to quit procedure
 
 
 ;;;
