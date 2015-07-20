@@ -72,7 +72,7 @@
 
 (define *internal-events* (make-mailbox))
 
-(define quit-mowedline #f) ;; will be bound to a procedure that quits
+(define quit-mowedline #f) ;; will be bound to a quit continuation
 
 
 ;;;
