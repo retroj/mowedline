@@ -72,7 +72,7 @@
 
 (define *internal-events* (make-mailbox))
 
-(define quit #f) ;; will be bound to quit procedure
+(define quit-mowedline #f) ;; will be bound to a procedure that quits
 
 
 ;;;
@@ -476,7 +476,7 @@
 (define (window-handle-event/clientmessage window event)
   ;;XXX: there may be important information in
   ;;     xclientmessageevent-message_type
-  (quit))
+  (quit-mowedline))
 
 (define (window-handle-event/expose window event)
   (and-let* ((x (xexposeevent-x event))
@@ -976,7 +976,7 @@
                               interface: 'mowedline.interface)))
       (dbus:enable-polling-thread! enable: #f)
       (dbus:register-method dbus-context "update" update)
-      (dbus:register-method dbus-context "quit" quit)
+      (dbus:register-method dbus-context "quit" quit-mowedline)
       (dbus:register-method dbus-context "log" log-watch))
 
     (define (x-eventloop)
@@ -1008,7 +1008,7 @@
     (let ((running-threads (list)))
       (call/cc
        (lambda (return)
-         (set! quit (lambda params (return #t)))
+         (set! quit-mowedline (lambda params (return #t)))
          (push! (thread-start! x-eventloop) running-threads)
          (push! (thread-start! internal-events-eventloop) running-threads)
          (dbus-eventloop)))
