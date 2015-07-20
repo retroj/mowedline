@@ -76,6 +76,13 @@
 
 
 ;;;
+;;; Events
+;;;
+
+(define auxiliary-event-handlers (list))
+
+
+;;;
 ;;; Window Property Utils
 ;;;
 
