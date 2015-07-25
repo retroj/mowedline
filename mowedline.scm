@@ -767,14 +767,12 @@
   (apply make <map> args))
 
 (define-method (widget-update (widget <map>) params)
-  (let ((pair (with-input-from-string
-                  (first params)
-                (lambda ()
-                  (let* ((fst (read))
-                         (snd (read)))
-                    (list fst snd))))))
-    (hash-table-set! (slot-value widget 'data)
-                     (first pair) (second pair))
+  (receive (fst snd)
+      (with-input-from-string (first params)
+        (lambda () (values (read) (read))))
+    (unless (or (eof-object? fst) (eof-object? snd))
+      (hash-table-set! (slot-value widget 'data)
+                       fst snd))
     (set!
      (slot-value widget 'text)
      ((slot-value widget 'format)
