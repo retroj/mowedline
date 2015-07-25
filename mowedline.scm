@@ -69,7 +69,9 @@
 
 (define *internal-events* (make-mailbox))
 
-(define quit-mowedline #f) ;; will be bound to a quit continuation
+(define %quit-mowedline #f) ;; will be bound to a quit continuation
+(define (quit-mowedline . _)
+  (%quit-mowedline #t))
 
 
 ;;;
@@ -851,7 +853,7 @@
              'text "mowedline"))))
 
     (define (client-quit)
-      (mailbox-send! *internal-events* (lambda () (quit-mowedline)))
+      (mailbox-send! *internal-events* quit-mowedline)
       #t)
 
     (let ((dbus-context
@@ -884,7 +886,7 @@
 
     (call/cc
      (lambda (return)
-       (set! quit-mowedline (lambda _ (return #t)))
+       (set! %quit-mowedline return)
        (thread-start! x-eventloop)
        (thread-start! internal-events-eventloop)
        (dbus-eventloop))))
