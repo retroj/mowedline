@@ -592,6 +592,11 @@
 (define (widget:text . args)
   (apply make <text-widget> args))
 
+(define-method (initialize-instance (widget <text-widget>))
+  (call-next-method)
+  ;; apply formatting to default text
+  (widget-update widget (list (slot-value widget 'text))))
+
 (define-method (widget-draw (widget <text-widget>) region)
   (let* ((window (slot-value widget 'window))
          (xwindow (slot-value window 'xwindow))
@@ -711,8 +716,7 @@
 ;;
 (define-class <flags> (<text-widget>)
   ((flags initform: '())
-   (curflags initform: '())
-   (text initform: '())))
+   (curflags initform: '())))
 
 (define (widget:flags . args)
   (apply make <flags> args))
