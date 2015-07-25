@@ -12,6 +12,7 @@
         miscmacros
         xft
         xlib
+        xlib-utils
         xtypes)
  (author "John J. Foerch")
  (synopsis "an X status bar program"))

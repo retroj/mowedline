@@ -44,6 +44,7 @@
      (except xlib make-xrectangle
                   xrectangle-x xrectangle-y
                   xrectangle-width xrectangle-height)
+     (prefix xlib-utils xu:)
      xtypes)
 
 (import llog)
@@ -73,134 +74,8 @@
 (define (quit-mowedline . _)
   (%quit-mowedline #t))
 
-
-;;;
-;;; Window Property Utils
-;;;
-
-(define-record window-property
-  type format data count)
-
-(define (make-atom-property atom-name)
-  (let ((data (xinternatom *display* atom-name 0)))
-    (let-location ((data unsigned-long data))
-      (make-window-property "ATOM" 32
-                            (location data)
-                            1))))
-
-(define (make-number-property number)
-  (let-location ((data unsigned-long number))
-    (make-window-property "CARDINAL" 32 (location data) 1)))
-
-(define (make-numbers-property numbers)
-  (let* ((vec (list->u32vector numbers))
-         (len (u32vector-length vec))
-         (lvec ((foreign-lambda* c-pointer ((u32vector s) (int length))
-                  "unsigned long * lvec = malloc(sizeof(unsigned long) * length);"
-                  "int i;"
-                  "for (i = 0; i < length; i++) {"
-                  "    lvec[i] = s[i];"
-                  "}"
-                  "C_return(lvec);")
-                vec len)))
-    (set-finalizer! lvec free)
-    (make-window-property "CARDINAL" 32 lvec len)))
-
-(define (make-text-property textp)
-  (let ((tp (make-xtextproperty)))
-    (set-xtextproperty-value! tp (make-locative textp))
-    (set-xtextproperty-encoding! tp XA_STRING)
-    (set-xtextproperty-format! tp 32)
-    (set-xtextproperty-nitems! tp 1)
-    tp))
-
-(define (window-property-set win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (window-property-type value) 0)
-                   (window-property-format value)
-                   PROPMODEREPLACE
-                   (window-property-data value)
-                   (window-property-count value)))
-
-(define (window-property-append win key value)
-  (xchangeproperty *display* win
-                   (xinternatom *display* key 0)
-                   (xinternatom *display* (window-property-type value) 0)
-                   (window-property-format value)
-                   PROPMODEAPPEND
-                   (window-property-data value)
-                   (window-property-count value)))
-
-
-(define (switch-to-desktop/number desktop)
-  (let ((root (xrootwindow *display* (xdefaultscreen *display*)))
-        (event-mask (bitwise-ior SUBSTRUCTURENOTIFYMASK
-                                 SUBSTRUCTUREREDIRECTMASK))
-        (event (make-xclientmessageevent)))
-    (set-xclientmessageevent-type! event CLIENTMESSAGE)
-    (set-xclientmessageevent-serial! event 0)
-    (set-xclientmessageevent-send_event! event 1)
-    (set-xclientmessageevent-display! event *display*)
-    (set-xclientmessageevent-window! event root)
-    (set-xclientmessageevent-message_type!
-     event (xinternatom *display* "_NET_CURRENT_DESKTOP" 0))
-    (set-xclientmessageevent-format! event 32)
-    (define make-event-data-l
-      (foreign-lambda* void (((c-pointer long) data_l)
-                             (long l0) (long l1) (long l2)
-                             (long l3) (long l4))
-        "data_l[0] = l0; data_l[1] = l1;"
-        "data_l[2] = l2; data_l[3] = l3;"
-        "data_l[4] = l4;"))
-    (make-event-data-l (xclientmessageevent-data-l event)
-                       desktop (current-seconds) 0 0 0)
-    (xsendevent *display* root 0 event-mask event)))
-
-
 (define (switch-to-desktop desktop)
-  (cond
-   ((number? desktop) (switch-to-desktop/number desktop))
-   ((string? desktop)
-    (let ((root (xrootwindow *display* (xdefaultscreen *display*)))
-          (MAX_PROPERTY_VALUE_LEN 4096)
-          (property (xinternatom *display* "_NET_DESKTOP_NAMES" 0))
-          (req_type (xinternatom *display* "UTF8_STRING" 0)))
-      (let-location ((xa_ret_type unsigned-long)
-                     (ret_format int)
-                     (ret_nitems unsigned-long)
-                     (ret_bytes_after unsigned-long)
-                     (ret_prop unsigned-c-string*))
-        (xgetwindowproperty *display* root property
-                            0 (/ MAX_PROPERTY_VALUE_LEN 4) 0
-                            req_type
-                            (location xa_ret_type)
-                            (location ret_format)
-                            (location ret_nitems)
-                            (location ret_bytes_after)
-                            (location ret_prop))
-        (assert (= req_type xa_ret_type))
-        (define find-desktop
-          (foreign-lambda* int ((unsigned-c-string target)
-                                ((c-pointer unsigned-c-string) names)
-                                (unsigned-long nitems))
-            "int i, d = 0, atstart = 1;"
-            "for (i = 0; i < nitems; i++) {"
-            "    if (atstart) {"
-            "        if (0 == strcmp(target, &names[0][i]))"
-            "            C_return(d);"
-            "        atstart = 0;"
-            "    }"
-            "    if (names[0][i] == 0) {"
-            "        atstart = 1;"
-            "        d++;"
-            "    }"
-            "}"
-            "C_return(-1);"))
-        (let ((desktop-number (find-desktop desktop (location ret_prop) ret_nitems)))
-          (when (> desktop-number -1)
-            (switch-to-desktop/number desktop-number))))))))
-
+  (xu:switch-to-desktop *display* desktop))
 
 
 ;;;
@@ -298,24 +173,24 @@
     (xstorename *display* xwindow "mowedline")
 
     (let ((p (make-xtextproperty))
-          (str (make-text-property (get-host-name))))
+          (str (xu:make-text-property (get-host-name))))
       (xstringlisttotextproperty str 1 p)
       (xsetwmclientmachine *display* xwindow p))
 
-    (window-property-set xwindow "_NET_WM_PID"
-                         (make-number-property (current-process-id)))
-    (window-property-set xwindow "_NET_WM_WINDOW_TYPE"
-                         (make-atom-property "_NET_WM_TYPE_DOCK"))
-    (window-property-set xwindow "_NET_WM_DESKTOP"
-                         (make-number-property #xffffffff))
-    (window-property-set xwindow "_NET_WM_STATE"
-                         (make-atom-property "_NET_WM_STATE_BELOW"))
-    (window-property-append xwindow "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_STICKY"))
-    (window-property-append xwindow "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_TASKBAR"))
-    (window-property-append xwindow "_NET_WM_STATE"
-                            (make-atom-property "_NET_WM_STATE_SKIP_PAGER"))
+    (xu:window-property-set *display* xwindow "_NET_WM_PID"
+                            (xu:make-number-property (current-process-id)))
+    (xu:window-property-set *display* xwindow "_NET_WM_WINDOW_TYPE"
+                            (xu:make-atom-property *display* "_NET_WM_TYPE_DOCK"))
+    (xu:window-property-set *display* xwindow "_NET_WM_DESKTOP"
+                            (xu:make-number-property #xffffffff))
+    (xu:window-property-set *display* xwindow "_NET_WM_STATE"
+                            (xu:make-atom-property *display* "_NET_WM_STATE_BELOW"))
+    (xu:window-property-append *display* xwindow "_NET_WM_STATE"
+                               (xu:make-atom-property *display* "_NET_WM_STATE_STICKY"))
+    (xu:window-property-append *display* xwindow "_NET_WM_STATE"
+                               (xu:make-atom-property *display* "_NET_WM_STATE_SKIP_TASKBAR"))
+    (xu:window-property-append *display* xwindow "_NET_WM_STATE"
+                               (xu:make-atom-property *display* "_NET_WM_STATE_SKIP_PAGER"))
 
     ;; Struts: left, right, top, bottom,
     ;;         left_start_y, left_end_y, right_start_y, right_end_y,
@@ -324,11 +199,11 @@
     ;; so for a top panel, we set top, top_start_x, and top_end_x.
     (let ((strut-height (+ height (slot-value window 'margin-top)
                            (slot-value window 'margin-bottom))))
-      (window-property-set xwindow "_NET_WM_STRUT_PARTIAL"
-                           (make-numbers-property
-                            (if (eq? position 'bottom)
-                                (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
-                                (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
+      (xu:window-property-set *display* xwindow "_NET_WM_STRUT_PARTIAL"
+                              (xu:make-numbers-property
+                               (if (eq? position 'bottom)
+                                   (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
+                                   (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
 
     (let ((d-atom (xinternatom *display* "WM_DELETE_WINDOW" 1)))
       (let-location ((atm unsigned-long d-atom))
