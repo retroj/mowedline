@@ -818,6 +818,8 @@
 
 (define bypass-startup-script (make-parameter #f))
 
+(define startup-script (make-parameter #f))
+
 (define (mowedline)
   (set! *display* (xopendisplay #f))
   (assert *display*)
@@ -834,11 +836,18 @@
       (make <window> 'widgets (reverse! *default-widgets*))
       (set! *default-widgets* (list)))
 
-    (and-let* ((_ (not (bypass-startup-script)))
-               (path
-                (find file-read-access?
-                      (L (filepath:join-path (L "~" ".mowedline"))
-                         (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))
+    (and-let*
+        ((_ (not (bypass-startup-script)))
+         (path
+          (cond
+           ((startup-script)
+            (if (file-read-access? (startup-script))
+                (startup-script)
+                (error (sprintf "could not read ~S~%" (startup-script)))))
+           (else
+            (find file-read-access?
+                  (L (filepath:join-path (L "~" ".mowedline"))
+                     (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
       (eval '(import mowedline))
       (load path))
 
@@ -905,6 +914,9 @@
  ((q)
   doc: "bypass .mowedline"
   (bypass-startup-script #t))
+ ((config path)
+  doc: "use config file instead of .mowedline"
+  (startup-script path))
  ((text-widget name)
   (push! (make <text-widget>
            'name name)
