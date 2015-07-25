@@ -69,6 +69,8 @@
 
 (define *internal-events* (make-mailbox))
 
+(define quit-mowedline #f) ;; will be bound to a quit continuation
+
 
 ;;;
 ;;; Window Property Utils
@@ -204,7 +206,7 @@
 ;;;
 
 (define-record button
-  xrectangle thunk)
+  xrectangle handler)
 
 
 ;;;
@@ -220,6 +222,12 @@
       (inc! last)
       last)))
 
+(define (window-default-event-handlers)
+  (list
+   (L CLIENTMESSAGE window-handle-event/clientmessage)
+   (L EXPOSE window-handle-event/expose)
+   (L BUTTONPRESS window-handle-event/buttonpress)))
+
 (define-class <window> ()
   ((id initform: (window-get-next-id))
    (screen initform: (xdefaultscreen *display*))
@@ -233,7 +241,8 @@
    (margin-left initform: 0)
    (widgets initform: (list))
    (xwindow)
-   (fonts initform: (list))))
+   (fonts initform: (list))
+   (event-handlers initform: (window-default-event-handlers))))
 
 (define (window . args)
   (receive (props widgets)
@@ -454,6 +463,33 @@
                     (xrectangle-width wrect))))))
    (slot-value window 'widgets)))
 
+(define (window-handle-event/clientmessage window event)
+  ;;XXX: there may be important information in
+  ;;     xclientmessageevent-message_type
+  (quit-mowedline))
+
+(define (window-handle-event/expose window event)
+  (and-let* ((x (xexposeevent-x event))
+             (y (xexposeevent-y event))
+             (width (xexposeevent-width event))
+             (height (xexposeevent-height event)))
+    (window-expose window (make-xrectangle x y width height))))
+
+(define (window-handle-event/buttonpress window event)
+  (and-let* ((widget (window-widget-at-position
+                      window (xbuttonpressedevent-x event)))
+             (button (widget-button-at-position
+                      widget (xbuttonpressedevent-x event))))
+    ((button-handler button) widget)))
+
+(define (window-handle-event window event)
+  (and-let* ((handlers (alist-ref
+                        (xevent-type event)
+                        (slot-value window 'event-handlers))))
+    (for-each
+     (lambda (handler) (handler window event))
+     handlers)))
+
 
 ;;;
 ;;; Widgets
@@ -586,13 +622,13 @@
          ((pair? term)
           (cond
            ((eq? 'button (first term))
-            (let ((thunk (second term))
+            (let ((handler (second term))
                   (buttonx1 x))
               (walk (cddr term) fonts colors)
               (push! (make-button (make-xrectangle buttonx1 0
                                                    (- x buttonx1)
                                                    (xrectangle-height wrect))
-                                  thunk)
+                                  handler)
                      (slot-value widget 'buttons))))
            ((eq? 'color (first term))
             (walk (cddr term) fonts (cons (make-color (second term)) colors)))
@@ -783,11 +819,7 @@
   (assert *display*)
 
   (let ((x-fd (xconnectionnumber *display*))
-        (event (make-xevent))
-        (done #f))
-
-    (define (quit . params)
-      (set! done #t))
+        (event (make-xevent)))
 
     (for-each
      (lambda (widgets) (make <window> 'widgets widgets))
@@ -814,59 +846,44 @@
              'flex 1
              'text "mowedline"))))
 
+    (define (client-quit)
+      (mailbox-send! *internal-events* (lambda () (quit-mowedline)))
+      #t)
+
     (let ((dbus-context
            (dbus:make-context service: 'mowedline.server
                               interface: 'mowedline.interface)))
       (dbus:enable-polling-thread! enable: #f)
       (dbus:register-method dbus-context "update" update)
-      (dbus:register-method dbus-context "quit" quit)
+      (dbus:register-method dbus-context "quit" client-quit)
       (dbus:register-method dbus-context "log" log-watch))
 
     (define (x-eventloop)
       (unless (> (xpending *display*) 0)
         (thread-wait-for-i/o! x-fd input:))
       (xnextevent *display* event)
-      (select (xevent-type event)
-        ((CLIENTMESSAGE)
-         (set! done #t))
-        ((EXPOSE)
-         (let* ((xwindow (xexposeevent-window event))
-                (window (find (lambda (win)
-                                (equal? (slot-value win 'xwindow) xwindow))
-                              *windows*))
-                (x (xexposeevent-x event))
-                (y (xexposeevent-y event))
-                (width (xexposeevent-width event))
-                (height (xexposeevent-height event)))
-           (window-expose window (make-xrectangle x y width height))))
-        ((BUTTONPRESS)
-         (and-let* ((xwindow (xexposeevent-window event))
-                    (window (find (lambda (win)
-                                    (equal? (slot-value win 'xwindow) xwindow))
-                                  *windows*))
-                    (widget (window-widget-at-position
-                             window (xbuttonpressedevent-x event)))
-                    (button (widget-button-at-position
-                             widget (xbuttonpressedevent-x event))))
-           ((eval (button-thunk button))))))
+      (and-let* ((xwindow (xevent-xany-window event))
+                 (window (find (lambda (win)
+                                 (equal? (slot-value win 'xwindow) xwindow))
+                               *windows*)))
+        (window-handle-event window event))
       (x-eventloop))
 
     (define (dbus-eventloop)
       (dbus:poll-for-message)
-      (unless done
-        (thread-sleep! 0.01)
-        (dbus-eventloop)))
+      (thread-sleep! 0.01)
+      (dbus-eventloop))
 
     (define (internal-events-eventloop)
-      (let loop ()
-        ((mailbox-receive! *internal-events*))
-        (loop)))
+      ((mailbox-receive! *internal-events*))
+      (internal-events-eventloop))
 
-    (let ((x-thread (thread-start! x-eventloop))
-          (internal-events-thread (thread-start! internal-events-eventloop)))
-      (dbus-eventloop)
-      (thread-terminate! x-thread)
-      (thread-terminate! internal-events-thread)))
+    (call/cc
+     (lambda (return)
+       (set! quit-mowedline (lambda _ (return #t)))
+       (thread-start! x-eventloop)
+       (thread-start! internal-events-eventloop)
+       (dbus-eventloop))))
   (xclosedisplay *display*))
 
 (define (mowedline-start)
