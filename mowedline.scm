@@ -696,7 +696,9 @@
 (define startup-script (make-parameter #f))
 
 (define (mowedline)
-  (set! *display* (xopendisplay #f))
+  (xu:with-xcontext (xu:xcontext display: (xopendisplay #f))
+      (display)
+  (set! *display* display)
   (assert *display*)
 
   (let ((x-fd (xconnectionnumber *display*))
@@ -772,7 +774,7 @@
        (thread-start! x-eventloop)
        (thread-start! internal-events-eventloop)
        (dbus-eventloop))))
-  (xclosedisplay *display*))
+  (xclosedisplay *display*)))
 
 (define (mowedline-start)
   (thread-start! (lambda () (mowedline) (exit))))
