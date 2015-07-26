@@ -698,82 +698,82 @@
 (define (mowedline)
   (xu:with-xcontext (xu:xcontext display: (xopendisplay #f))
       (display)
-  (set! *display* display)
-  (assert *display*)
+    (set! *display* display)
+    (assert *display*)
 
-  (let ((x-fd (xconnectionnumber *display*))
-        (event (make-xevent)))
+    (let ((x-fd (xconnectionnumber *display*))
+          (event (make-xevent)))
 
-    (for-each
-     (lambda (widgets) (make <window> 'widgets widgets))
-     *command-line-windows*)
-    (set! *command-line-windows* (list))
+      (for-each
+       (lambda (widgets) (make <window> 'widgets widgets))
+       *command-line-windows*)
+      (set! *command-line-windows* (list))
 
-    (unless (null? *default-widgets*)
-      (make <window> 'widgets (reverse! *default-widgets*))
-      (set! *default-widgets* (list)))
+      (unless (null? *default-widgets*)
+        (make <window> 'widgets (reverse! *default-widgets*))
+        (set! *default-widgets* (list)))
 
-    (and-let*
-        ((_ (not (bypass-startup-script)))
-         (path
-          (cond
-           ((startup-script)
-            (if (file-read-access? (startup-script))
-                (startup-script)
-                (error (sprintf "could not read ~S~%" (startup-script)))))
-           (else
-            (find file-read-access?
-                  (L (filepath:join-path (L "~" ".mowedline"))
-                     (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
-      (eval '(import mowedline))
-      (load path))
+      (and-let*
+          ((_ (not (bypass-startup-script)))
+           (path
+            (cond
+             ((startup-script)
+              (if (file-read-access? (startup-script))
+                  (startup-script)
+                  (error (sprintf "could not read ~S~%" (startup-script)))))
+             (else
+              (find file-read-access?
+                    (L (filepath:join-path (L "~" ".mowedline"))
+                       (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
+        (eval '(import mowedline))
+        (load path))
 
-    (when (null? *windows*)
-      (make <window>
-        'widgets
-        (L (make <text-widget>
-             'name "default"
-             'flex 1
-             'text "mowedline"))))
+      (when (null? *windows*)
+        (make <window>
+          'widgets
+          (L (make <text-widget>
+               'name "default"
+               'flex 1
+               'text "mowedline"))))
 
-    (define (client-quit)
-      (mailbox-send! *internal-events* quit-mowedline)
-      #t)
+      (define (client-quit)
+        (mailbox-send! *internal-events* quit-mowedline)
+        #t)
 
-    (let ((dbus-context
-           (dbus:make-context service: 'mowedline.server
-                              interface: 'mowedline.interface)))
-      (dbus:enable-polling-thread! enable: #f)
-      (dbus:register-method dbus-context "update" update)
-      (dbus:register-method dbus-context "quit" client-quit)
-      (dbus:register-method dbus-context "log" log-watch))
+      (let ((dbus-context
+             (dbus:make-context service: 'mowedline.server
+                                interface: 'mowedline.interface)))
+        (dbus:enable-polling-thread! enable: #f)
+        (dbus:register-method dbus-context "update" update)
+        (dbus:register-method dbus-context "quit" client-quit)
+        (dbus:register-method dbus-context "log" log-watch))
 
-    (define (x-eventloop)
-      (unless (> (xpending *display*) 0)
-        (thread-wait-for-i/o! x-fd input:))
-      (xnextevent *display* event)
-      (and-let* ((xwindow (xevent-xany-window event))
-                 (window (find (lambda (win)
-                                 (equal? (slot-value win 'xwindow) xwindow))
-                               *windows*)))
-        (window-handle-event window event))
-      (x-eventloop))
+      (define (x-eventloop)
+        (unless (> (xpending *display*) 0)
+          (thread-wait-for-i/o! x-fd input:))
+        (xnextevent *display* event)
+        (and-let* ((xwindow (xevent-xany-window event))
+                   (window (find (lambda (win)
+                                   (equal? (slot-value win 'xwindow) xwindow))
+                                 *windows*)))
+          (window-handle-event window event))
+        (x-eventloop))
 
-    (define (dbus-eventloop)
-      (dbus:poll-for-message)
-      (thread-sleep! 0.01)
-      (dbus-eventloop))
+      (define (dbus-eventloop)
+        (dbus:poll-for-message)
+        (thread-sleep! 0.01)
+        (dbus-eventloop))
 
-    (define (internal-events-eventloop)
-      ((mailbox-receive! *internal-events*))
-      (internal-events-eventloop))
+      (define (internal-events-eventloop)
+        ((mailbox-receive! *internal-events*))
+        (internal-events-eventloop))
 
-    (call/cc
-     (lambda (return)
-       (set! %quit-mowedline return)
-       (thread-start! x-eventloop)
-       (thread-start! internal-events-eventloop)
-       (dbus-eventloop))))
+      (call/cc
+       (lambda (return)
+         (set! %quit-mowedline return)
+         (thread-start! x-eventloop)
+         (thread-start! internal-events-eventloop)
+         (dbus-eventloop))))
   (xclosedisplay *display*)))
 
 (define (mowedline-start)
