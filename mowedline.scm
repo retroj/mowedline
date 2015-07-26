@@ -129,100 +129,100 @@
 (define-method (initialize-instance (window <window>))
   (call-next-method)
   (xu:with-xcontext *xdisplay* (display)
-  (for-each (lambda (widget) (widget-set-window! widget window))
-            (slot-value window 'widgets))
-  (let* ((screen (slot-value window 'screen))
-         (shei (xdisplayheight display screen))
-         (position (slot-value window 'position))
-         (width (or (slot-value window 'width)
-                    (- (xdisplaywidth display screen)
-                       (slot-value window 'margin-left)
-                       (slot-value window 'margin-right))))
-         (height (or (slot-value window 'height)
-                     (fold max 1 (map widget-preferred-height
-                                      (slot-value window 'widgets)))))
-         (window-top (case position
-                       ((bottom) (- shei (slot-value window 'margin-bottom) height))
-                       (else (slot-value window 'margin-top))))
-         (xwindow (xcreatesimplewindow
-                   display
-                   (xrootwindow display screen)
-                   (slot-value window 'margin-left)
-                   window-top width height 0
-                   (xblackpixel display screen)
-                   (xwhitepixel display screen))))
-    (assert xwindow)
-    (set! (slot-value window 'width) width)
-    (set! (slot-value window 'height) height)
-    (set! (slot-value window 'baseline)
-          (fold max 1 (map widget-preferred-baseline
-                           (slot-value window 'widgets))))
-    (set! (slot-value window 'xwindow) xwindow)
-    (for-each widget-init (slot-value window 'widgets))
-    (window-update-widget-dimensions! window)
+    (for-each (lambda (widget) (widget-set-window! widget window))
+              (slot-value window 'widgets))
+    (let* ((screen (slot-value window 'screen))
+           (shei (xdisplayheight display screen))
+           (position (slot-value window 'position))
+           (width (or (slot-value window 'width)
+                      (- (xdisplaywidth display screen)
+                         (slot-value window 'margin-left)
+                         (slot-value window 'margin-right))))
+           (height (or (slot-value window 'height)
+                       (fold max 1 (map widget-preferred-height
+                                        (slot-value window 'widgets)))))
+           (window-top (case position
+                         ((bottom) (- shei (slot-value window 'margin-bottom) height))
+                         (else (slot-value window 'margin-top))))
+           (xwindow (xcreatesimplewindow
+                     display
+                     (xrootwindow display screen)
+                     (slot-value window 'margin-left)
+                     window-top width height 0
+                     (xblackpixel display screen)
+                     (xwhitepixel display screen))))
+      (assert xwindow)
+      (set! (slot-value window 'width) width)
+      (set! (slot-value window 'height) height)
+      (set! (slot-value window 'baseline)
+            (fold max 1 (map widget-preferred-baseline
+                             (slot-value window 'widgets))))
+      (set! (slot-value window 'xwindow) xwindow)
+      (for-each widget-init (slot-value window 'widgets))
+      (window-update-widget-dimensions! window)
 
-    (let ((attr (make-xsetwindowattributes)))
-      (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
-      (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
-      (set-xsetwindowattributes-override_redirect! attr 1)
-      (xchangewindowattributes display xwindow
-                               (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                               attr))
+      (let ((attr (make-xsetwindowattributes)))
+        (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
+        (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
+        (set-xsetwindowattributes-override_redirect! attr 1)
+        (xchangewindowattributes display xwindow
+                                 (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                                 attr))
 
-    ;; Window Properties
-    ;;
-    (xstorename display xwindow "mowedline")
+      ;; Window Properties
+      ;;
+      (xstorename display xwindow "mowedline")
 
-    (let ((p (make-xtextproperty))
-          (str (xu:make-text-property (get-host-name))))
-      (xstringlisttotextproperty str 1 p)
-      (xsetwmclientmachine display xwindow p))
+      (let ((p (make-xtextproperty))
+            (str (xu:make-text-property (get-host-name))))
+        (xstringlisttotextproperty str 1 p)
+        (xsetwmclientmachine display xwindow p))
 
-    (xu:window-property-set display xwindow "_NET_WM_PID"
-                            (xu:make-number-property (current-process-id)))
-    (xu:window-property-set display xwindow "_NET_WM_WINDOW_TYPE"
-                            (xu:make-atom-property display "_NET_WM_TYPE_DOCK"))
-    (xu:window-property-set display xwindow "_NET_WM_DESKTOP"
-                            (xu:make-number-property #xffffffff))
-    (xu:window-property-set display xwindow "_NET_WM_STATE"
-                            (xu:make-atom-property display "_NET_WM_STATE_BELOW"))
-    (xu:window-property-append display xwindow "_NET_WM_STATE"
-                               (xu:make-atom-property display "_NET_WM_STATE_STICKY"))
-    (xu:window-property-append display xwindow "_NET_WM_STATE"
-                               (xu:make-atom-property display "_NET_WM_STATE_SKIP_TASKBAR"))
-    (xu:window-property-append display xwindow "_NET_WM_STATE"
-                               (xu:make-atom-property display "_NET_WM_STATE_SKIP_PAGER"))
+      (xu:window-property-set display xwindow "_NET_WM_PID"
+                              (xu:make-number-property (current-process-id)))
+      (xu:window-property-set display xwindow "_NET_WM_WINDOW_TYPE"
+                              (xu:make-atom-property display "_NET_WM_TYPE_DOCK"))
+      (xu:window-property-set display xwindow "_NET_WM_DESKTOP"
+                              (xu:make-number-property #xffffffff))
+      (xu:window-property-set display xwindow "_NET_WM_STATE"
+                              (xu:make-atom-property display "_NET_WM_STATE_BELOW"))
+      (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                 (xu:make-atom-property display "_NET_WM_STATE_STICKY"))
+      (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                 (xu:make-atom-property display "_NET_WM_STATE_SKIP_TASKBAR"))
+      (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                 (xu:make-atom-property display "_NET_WM_STATE_SKIP_PAGER"))
 
-    ;; Struts: left, right, top, bottom,
-    ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-    ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-    ;;
-    ;; so for a top panel, we set top, top_start_x, and top_end_x.
-    (let ((strut-height (+ height (slot-value window 'margin-top)
-                           (slot-value window 'margin-bottom))))
-      (xu:window-property-set display xwindow "_NET_WM_STRUT_PARTIAL"
-                              (xu:make-numbers-property
-                               (if (eq? position 'bottom)
-                                   (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
-                                   (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
+      ;; Struts: left, right, top, bottom,
+      ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+      ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+      ;;
+      ;; so for a top panel, we set top, top_start_x, and top_end_x.
+      (let ((strut-height (+ height (slot-value window 'margin-top)
+                             (slot-value window 'margin-bottom))))
+        (xu:window-property-set display xwindow "_NET_WM_STRUT_PARTIAL"
+                                (xu:make-numbers-property
+                                 (if (eq? position 'bottom)
+                                     (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
+                                     (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
 
-    (let ((d-atom (xinternatom display "WM_DELETE_WINDOW" 1)))
-      (let-location ((atm unsigned-long d-atom))
-        (xsetwmprotocols display xwindow (location atm) 1)))
+      (let ((d-atom (xinternatom display "WM_DELETE_WINDOW" 1)))
+        (let-location ((atm unsigned-long d-atom))
+          (xsetwmprotocols display xwindow (location atm) 1)))
 
-    (when (window-lower)
-      (xlowerwindow display xwindow))
+      (when (window-lower)
+        (xlowerwindow display xwindow))
 
-    (xselectinput display
-                  (slot-value window 'xwindow)
-                  (bitwise-ior EXPOSUREMASK
-                               BUTTONPRESSMASK
-                               STRUCTURENOTIFYMASK))
-    (xmapwindow display (slot-value window 'xwindow))
-    (xnextevent display (make-xevent))
-    (window-expose window)
+      (xselectinput display
+                    (slot-value window 'xwindow)
+                    (bitwise-ior EXPOSUREMASK
+                                 BUTTONPRESSMASK
+                                 STRUCTURENOTIFYMASK))
+      (xmapwindow display (slot-value window 'xwindow))
+      (xnextevent display (make-xevent))
+      (window-expose window)
 
-    (push! window *windows*))))
+      (push! window *windows*))))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window 'fonts)))
@@ -242,43 +242,43 @@
     ;; intersect that rectangle, passing the rectangle in to them so they
     ;; can use it as a mask (via a region).
     (xu:with-xcontext *xdisplay* (display)
-    (let ((widgets (slot-value window 'widgets))
-          (r (xcreateregion)))
-      (xunionrectwithregion xrectangle (xcreateregion) r)
-      (llog expose "window ~A, ~A"
-            (slot-value window 'id)
-            (xrectangle->string xrectangle))
-      (for-each
-       (lambda (widget)
-         ;; does this widget intersect xrectangle?
-         (let* ((wrect (slot-value widget 'xrectangle))
-                (x (xrectangle-x wrect))
-                (y 0)
-                (width (xrectangle-width wrect))
-                (height (slot-value window 'height)))
-           (when (member (xrectinregion r x y width height)
-                         (L RECTANGLEPART RECTANGLEIN))
-             ;;intersect r with wrect and pass result to widget-draw
-             (let ((wreg (xcreateregion))
-                   (out (xcreateregion)))
-               (xunionrectwithregion wrect out wreg)
-               (xintersectregion r wreg out)
-               (widget-draw widget out)))))
-       widgets)
-      ;; if the entire window is not filled with widgets, we may need to
-      ;; clear the area to the right of the last widget.
-      (unless (null? widgets)
-        (let* ((lastwidget (last widgets))
-               (wrect (slot-value lastwidget 'xrectangle))
-               (p (+ (xrectangle-x wrect)
-                     (xrectangle-width wrect)))
-               (m (+ (xrectangle-x xrectangle)
-                     (xrectangle-width xrectangle))))
-          (when (> m p)
-            (xcleararea display (slot-value window 'xwindow)
-                        p 0 (- m p) (slot-value window 'height)
-                        0))))
-      (xflush display))))
+      (let ((widgets (slot-value window 'widgets))
+            (r (xcreateregion)))
+        (xunionrectwithregion xrectangle (xcreateregion) r)
+        (llog expose "window ~A, ~A"
+              (slot-value window 'id)
+              (xrectangle->string xrectangle))
+        (for-each
+         (lambda (widget)
+           ;; does this widget intersect xrectangle?
+           (let* ((wrect (slot-value widget 'xrectangle))
+                  (x (xrectangle-x wrect))
+                  (y 0)
+                  (width (xrectangle-width wrect))
+                  (height (slot-value window 'height)))
+             (when (member (xrectinregion r x y width height)
+                           (L RECTANGLEPART RECTANGLEIN))
+               ;;intersect r with wrect and pass result to widget-draw
+               (let ((wreg (xcreateregion))
+                     (out (xcreateregion)))
+                 (xunionrectwithregion wrect out wreg)
+                 (xintersectregion r wreg out)
+                 (widget-draw widget out)))))
+         widgets)
+        ;; if the entire window is not filled with widgets, we may need to
+        ;; clear the area to the right of the last widget.
+        (unless (null? widgets)
+          (let* ((lastwidget (last widgets))
+                 (wrect (slot-value lastwidget 'xrectangle))
+                 (p (+ (xrectangle-x wrect)
+                       (xrectangle-width wrect)))
+                 (m (+ (xrectangle-x xrectangle)
+                       (xrectangle-width xrectangle))))
+            (when (> m p)
+              (xcleararea display (slot-value window 'xwindow)
+                          p 0 (- m p) (slot-value window 'height)
+                          0))))
+        (xflush display))))
     ((window)
      (window-expose window
                     (make-xrectangle
@@ -417,21 +417,21 @@
 
 (define-method (widget-draw (widget <widget>) region)
   (xu:with-xcontext *xdisplay* (display)
-  (let* ((window (slot-value widget 'window))
-         (xwindow (slot-value window 'xwindow))
-         (wrect (slot-value widget 'xrectangle))
-         (x (xrectangle-x wrect))
-         (visual (xdefaultvisual display (xdefaultscreen display)))
-         (colormap (xdefaultcolormap display (xdefaultscreen display)))
-         (draw (xftdraw-create display xwindow visual colormap)))
-    (define (make-color c)
-      (apply make-xftcolor display visual colormap
-             (ensure-list c)))
-    (let ((background-color (make-color (slot-value widget 'background-color))))
-      (xftdraw-set-clip! draw region)
-      (xft-draw-rect draw background-color x 0
-                     (xrectangle-width wrect)
-                     (xrectangle-height wrect))))))
+    (let* ((window (slot-value widget 'window))
+           (xwindow (slot-value window 'xwindow))
+           (wrect (slot-value widget 'xrectangle))
+           (x (xrectangle-x wrect))
+           (visual (xdefaultvisual display (xdefaultscreen display)))
+           (colormap (xdefaultcolormap display (xdefaultscreen display)))
+           (draw (xftdraw-create display xwindow visual colormap)))
+      (define (make-color c)
+        (apply make-xftcolor display visual colormap
+               (ensure-list c)))
+      (let ((background-color (make-color (slot-value widget 'background-color))))
+        (xftdraw-set-clip! draw region)
+        (xft-draw-rect draw background-color x 0
+                       (xrectangle-width wrect)
+                       (xrectangle-height wrect))))))
 
 (define (widget-button-at-position widget x)
   (find
@@ -479,50 +479,50 @@
 
 (define-method (widget-draw (widget <text-widget>) region)
   (xu:with-xcontext *xdisplay* (display)
-  (let* ((window (slot-value widget 'window))
-         (xwindow (slot-value window 'xwindow))
-         (wrect (slot-value widget 'xrectangle))
-         (font (window-get-create-font window (slot-value widget 'font)))
-         (x (xrectangle-x wrect))
-         (baseline (slot-value window 'baseline))
-         (visual (xdefaultvisual display (xdefaultscreen display)))
-         (colormap (xdefaultcolormap display (xdefaultscreen display)))
-         (draw (xftdraw-create display xwindow visual colormap)))
-    (define (make-color c)
-      (apply make-xftcolor display visual colormap
-             (ensure-list c)))
-    (set! (slot-value widget 'buttons) (list))
-    (let ((color (make-color (slot-value widget 'color)))
-          (background-color (make-color (slot-value widget 'background-color))))
-      (xftdraw-set-clip! draw region)
-      (xft-draw-rect draw background-color x 0
-                     (xrectangle-width wrect)
-                     (xrectangle-height wrect))
-      (let walk ((term (slot-value widget 'text))
-                 (fonts (list font))
-                 (colors (list color)))
-        (cond
-         ((string? term)
-          (xft-draw-string draw (first fonts) (first colors) x baseline term)
-          (inc! x (xglyphinfo-xoff (xft-text-extents display (first fonts) term))))
-         ((pair? term)
+    (let* ((window (slot-value widget 'window))
+           (xwindow (slot-value window 'xwindow))
+           (wrect (slot-value widget 'xrectangle))
+           (font (window-get-create-font window (slot-value widget 'font)))
+           (x (xrectangle-x wrect))
+           (baseline (slot-value window 'baseline))
+           (visual (xdefaultvisual display (xdefaultscreen display)))
+           (colormap (xdefaultcolormap display (xdefaultscreen display)))
+           (draw (xftdraw-create display xwindow visual colormap)))
+      (define (make-color c)
+        (apply make-xftcolor display visual colormap
+               (ensure-list c)))
+      (set! (slot-value widget 'buttons) (list))
+      (let ((color (make-color (slot-value widget 'color)))
+            (background-color (make-color (slot-value widget 'background-color))))
+        (xftdraw-set-clip! draw region)
+        (xft-draw-rect draw background-color x 0
+                       (xrectangle-width wrect)
+                       (xrectangle-height wrect))
+        (let walk ((term (slot-value widget 'text))
+                   (fonts (list font))
+                   (colors (list color)))
           (cond
-           ((eq? 'button (first term))
-            (let ((handler (second term))
-                  (buttonx1 x))
-              (walk (cddr term) fonts colors)
-              (push! (make-button (make-xrectangle buttonx1 0
-                                                   (- x buttonx1)
-                                                   (xrectangle-height wrect))
-                                  handler)
-                     (slot-value widget 'buttons))))
-           ((eq? 'color (first term))
-            (walk (cddr term) fonts (cons (make-color (second term)) colors)))
-           ((eq? 'font (first term))
-            (walk (cddr term) (cons (window-get-create-font window (second term)) fonts) colors))
-           (else
-            (walk (first term) fonts colors)
-            (walk (rest term) fonts colors))))))))))
+           ((string? term)
+            (xft-draw-string draw (first fonts) (first colors) x baseline term)
+            (inc! x (xglyphinfo-xoff (xft-text-extents display (first fonts) term))))
+           ((pair? term)
+            (cond
+             ((eq? 'button (first term))
+              (let ((handler (second term))
+                    (buttonx1 x))
+                (walk (cddr term) fonts colors)
+                (push! (make-button (make-xrectangle buttonx1 0
+                                                     (- x buttonx1)
+                                                     (xrectangle-height wrect))
+                                    handler)
+                       (slot-value widget 'buttons))))
+             ((eq? 'color (first term))
+              (walk (cddr term) fonts (cons (make-color (second term)) colors)))
+             ((eq? 'font (first term))
+              (walk (cddr term) (cons (window-get-create-font window (second term)) fonts) colors))
+             (else
+              (walk (first term) fonts colors)
+              (walk (rest term) fonts colors))))))))))
 
 (define-method (widget-preferred-baseline (widget <text-widget>))
   (xftfont-ascent (window-get-create-font
@@ -539,29 +539,29 @@
 
 (define-method (widget-preferred-width (widget <text-widget>))
   (xu:with-xcontext *xdisplay* (display)
-  (let ((window (slot-value widget 'window)))
-    (define (x-extent str font)
-      (xglyphinfo-xoff
-       (xft-text-extents display
-                         (window-get-create-font window font)
-                         str)))
-    (if (slot-value widget 'flex)
-        #f
-        (let walk ((term (slot-value widget 'text))
-                   (font (slot-value widget 'font)))
-          (cond
-           ((null? term) 0)
-           ((string? term) (x-extent term font))
-           ((pair? term)
+    (let ((window (slot-value widget 'window)))
+      (define (x-extent str font)
+        (xglyphinfo-xoff
+         (xft-text-extents display
+                           (window-get-create-font window font)
+                           str)))
+      (if (slot-value widget 'flex)
+          #f
+          (let walk ((term (slot-value widget 'text))
+                     (font (slot-value widget 'font)))
             (cond
-             ((eq? 'font (first term))
-              (walk (cddr term) (second term)))
-             ((memq (first term) '(color button))
-              (walk (cddr term) font))
-             (else
-              (+ (walk (first term) font)
-                 (walk (rest term) font)))))
-           (else 0)))))))
+             ((null? term) 0)
+             ((string? term) (x-extent term font))
+             ((pair? term)
+              (cond
+               ((eq? 'font (first term))
+                (walk (cddr term) (second term)))
+               ((memq (first term) '(color button))
+                (walk (cddr term) font))
+               (else
+                (+ (walk (first term) font)
+                   (walk (rest term) font)))))
+             (else 0)))))))
 
 (define-method (widget-update (widget <text-widget>) params)
   (set! (slot-value widget 'text)
