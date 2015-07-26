@@ -698,10 +698,10 @@
 (define (mowedline)
   (xu:with-xcontext (xu:xcontext display: (xopendisplay #f))
       (display)
+    (assert display)
     (set! *display* display)
-    (assert *display*)
 
-    (let ((x-fd (xconnectionnumber *display*))
+    (let ((x-fd (xconnectionnumber display))
           (event (make-xevent)))
 
       (for-each
@@ -774,7 +774,7 @@
          (thread-start! x-eventloop)
          (thread-start! internal-events-eventloop)
          (dbus-eventloop))))
-  (xclosedisplay *display*)))
+  (xclosedisplay display)))
 
 (define (mowedline-start)
   (thread-start! (lambda () (mowedline) (exit))))
