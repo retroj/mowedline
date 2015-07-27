@@ -721,15 +721,10 @@
       (and-let*
           ((_ (not (bypass-startup-script)))
            (path
-            (cond
-             ((startup-script)
-              (if (file-read-access? (startup-script))
-                  (startup-script)
-                  (error (sprintf "could not read ~S~%" (startup-script)))))
-             (else
-              (find file-read-access?
-                    (L (filepath:join-path (L "~" ".mowedline"))
-                       (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
+            (or (startup-script)
+                (find file-read-access?
+                      (L (filepath:join-path (L "~" ".mowedline"))
+                         (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))))
         (eval '(import mowedline))
         (load path))
 
