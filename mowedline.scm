@@ -701,10 +701,10 @@
 (define startup-script (make-parameter #f))
 
 (define (mowedline)
-  (xu:with-xcontext (xu:xcontext display: (xopendisplay #f))
-      (display)
+  (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
+      (xcontext display)
     (assert display)
-    (set! *xdisplay* (xu:current-xcontext))
+    (set! *xdisplay* xcontext)
 
     (let ((x-fd (xconnectionnumber display))
           (event (make-xevent)))
