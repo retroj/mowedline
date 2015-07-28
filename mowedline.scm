@@ -58,6 +58,8 @@
 ;;; Globals
 ;;;
 
+(define current-xcontext (make-parameter #f))
+
 (define *xdisplay* #f)
 
 (define *windows* (list))
@@ -75,7 +77,7 @@
   (%quit-mowedline #t))
 
 (define (switch-to-desktop desktop)
-  (xu:switch-to-desktop (xu:xcontext-display *xdisplay*) desktop))
+  (xu:switch-to-desktop (xu:xcontext-display (current-xcontext)) desktop))
 
 
 ;;;
@@ -107,7 +109,7 @@
 
 (define-class <window> ()
   ((id initform: (window-get-next-id))
-   (screen initform: (xdefaultscreen (xu:xcontext-display *xdisplay*)))
+   (xcontext initform: (current-xcontext))
    (position initform: (window-position))
    (height initform: #f)
    (width initform: #f)
@@ -128,11 +130,11 @@
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
-  (xu:with-xcontext *xdisplay* (display)
+  (xu:with-xcontext (slot-value window 'xcontext)
+      (display screen)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window 'widgets))
-    (let* ((screen (slot-value window 'screen))
-           (shei (xdisplayheight display screen))
+    (let* ((shei (xdisplayheight display screen))
            (position (slot-value window 'position))
            (width (or (slot-value window 'width)
                       (- (xdisplaywidth display screen)
@@ -152,6 +154,8 @@
                      (xblackpixel display screen)
                      (xwhitepixel display screen))))
       (assert xwindow)
+      (set! (slot-value window 'xcontext)
+            (xu:make-xcontext (current-xcontext) window: xwindow))
       (set! (slot-value window 'width) width)
       (set! (slot-value window 'height) height)
       (set! (slot-value window 'baseline)
@@ -227,13 +231,13 @@
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window 'fonts)))
     (or (alist-ref font fonts)
-        (let ((fontref (xft-font-open/name (xu:xcontext-display *xdisplay*)
-                                           (slot-value window 'screen)
-                                           font)))
+        (xu:with-xcontext (slot-value window 'xcontext)
+          (display screen)
+        (let ((fontref (xft-font-open/name display screen font)))
           (set! (slot-value window 'fonts)
                 (cons (cons font fontref)
                       fonts))
-          fontref))))
+          fontref)))))
 
 (define window-expose
   (case-lambda
@@ -355,11 +359,12 @@
     (window-expose window (make-xrectangle x y width height))))
 
 (define (window-handle-event/buttonpress window event)
+  (parameterize ((current-xcontext (slot-value window 'xcontext)))
   (and-let* ((widget (window-widget-at-position
                       window (xbuttonpressedevent-x event)))
              (button (widget-button-at-position
                       widget (xbuttonpressedevent-x event))))
-    ((button-handler button) widget)))
+    ((button-handler button) widget))))
 
 (define (window-handle-event window event)
   (and-let* ((handlers (alist-ref
@@ -706,6 +711,7 @@
     (assert display)
     (set! *xdisplay* xcontext)
 
+    (parameterize ((current-xcontext xcontext))
     (let ((x-fd (xconnectionnumber display))
           (event (make-xevent)))
 
@@ -773,7 +779,7 @@
          (set! %quit-mowedline return)
          (thread-start! x-eventloop)
          (thread-start! internal-events-eventloop)
-         (dbus-eventloop))))
+         (dbus-eventloop)))))
   (xclosedisplay display)))
 
 (define (mowedline-start)
