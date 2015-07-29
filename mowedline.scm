@@ -60,8 +60,6 @@
 
 (define current-xcontext (make-parameter #f))
 
-(define *xdisplay* #f)
-
 (define *windows* (list))
 
 (define *widgets* (make-hash-table test: equal?))
@@ -245,7 +243,7 @@
     ;; exposing a given rectangle means drawing all widgets which
     ;; intersect that rectangle, passing the rectangle in to them so they
     ;; can use it as a mask (via a region).
-    (xu:with-xcontext *xdisplay* (display)
+    (xu:with-xcontext (slot-value window 'xcontext) (display)
       (let ((widgets (slot-value window 'widgets))
             (r (xcreateregion)))
         (xunionrectwithregion xrectangle (xcreateregion) r)
@@ -421,22 +419,22 @@
       1))
 
 (define-method (widget-draw (widget <widget>) region)
-  (xu:with-xcontext *xdisplay* (display)
-    (let* ((window (slot-value widget 'window))
-           (xwindow (slot-value window 'xwindow))
-           (wrect (slot-value widget 'xrectangle))
-           (x (xrectangle-x wrect))
-           (visual (xdefaultvisual display (xdefaultscreen display)))
-           (colormap (xdefaultcolormap display (xdefaultscreen display)))
-           (draw (xftdraw-create display xwindow visual colormap)))
-      (define (make-color c)
-        (apply make-xftcolor display visual colormap
-               (ensure-list c)))
-      (let ((background-color (make-color (slot-value widget 'background-color))))
-        (xftdraw-set-clip! draw region)
-        (xft-draw-rect draw background-color x 0
-                       (xrectangle-width wrect)
-                       (xrectangle-height wrect))))))
+  (let ((window (slot-value widget 'window)))
+    (xu:with-xcontext (slot-value window 'xcontext) (display)
+      (let* ((xwindow (slot-value window 'xwindow))
+             (wrect (slot-value widget 'xrectangle))
+             (x (xrectangle-x wrect))
+             (visual (xdefaultvisual display (xdefaultscreen display)))
+             (colormap (xdefaultcolormap display (xdefaultscreen display)))
+             (draw (xftdraw-create display xwindow visual colormap)))
+        (define (make-color c)
+          (apply make-xftcolor display visual colormap
+                 (ensure-list c)))
+        (let ((background-color (make-color (slot-value widget 'background-color))))
+          (xftdraw-set-clip! draw region)
+          (xft-draw-rect draw background-color x 0
+                         (xrectangle-width wrect)
+                         (xrectangle-height wrect)))))))
 
 (define (widget-button-at-position widget x)
   (find
@@ -483,51 +481,51 @@
   (widget-update widget (list (slot-value widget 'text))))
 
 (define-method (widget-draw (widget <text-widget>) region)
-  (xu:with-xcontext *xdisplay* (display)
-    (let* ((window (slot-value widget 'window))
-           (xwindow (slot-value window 'xwindow))
-           (wrect (slot-value widget 'xrectangle))
-           (font (window-get-create-font window (slot-value widget 'font)))
-           (x (xrectangle-x wrect))
-           (baseline (slot-value window 'baseline))
-           (visual (xdefaultvisual display (xdefaultscreen display)))
-           (colormap (xdefaultcolormap display (xdefaultscreen display)))
-           (draw (xftdraw-create display xwindow visual colormap)))
-      (define (make-color c)
-        (apply make-xftcolor display visual colormap
-               (ensure-list c)))
-      (set! (slot-value widget 'buttons) (list))
-      (let ((color (make-color (slot-value widget 'color)))
-            (background-color (make-color (slot-value widget 'background-color))))
-        (xftdraw-set-clip! draw region)
-        (xft-draw-rect draw background-color x 0
-                       (xrectangle-width wrect)
-                       (xrectangle-height wrect))
-        (let walk ((term (slot-value widget 'text))
-                   (fonts (list font))
-                   (colors (list color)))
-          (cond
-           ((string? term)
-            (xft-draw-string draw (first fonts) (first colors) x baseline term)
-            (inc! x (xglyphinfo-xoff (xft-text-extents display (first fonts) term))))
-           ((pair? term)
+  (let ((window (slot-value widget 'window)))
+    (xu:with-xcontext (slot-value window 'xcontext) (display)
+      (let* ((xwindow (slot-value window 'xwindow))
+             (wrect (slot-value widget 'xrectangle))
+             (font (window-get-create-font window (slot-value widget 'font)))
+             (x (xrectangle-x wrect))
+             (baseline (slot-value window 'baseline))
+             (visual (xdefaultvisual display (xdefaultscreen display)))
+             (colormap (xdefaultcolormap display (xdefaultscreen display)))
+             (draw (xftdraw-create display xwindow visual colormap)))
+        (define (make-color c)
+          (apply make-xftcolor display visual colormap
+                 (ensure-list c)))
+        (set! (slot-value widget 'buttons) (list))
+        (let ((color (make-color (slot-value widget 'color)))
+              (background-color (make-color (slot-value widget 'background-color))))
+          (xftdraw-set-clip! draw region)
+          (xft-draw-rect draw background-color x 0
+                         (xrectangle-width wrect)
+                         (xrectangle-height wrect))
+          (let walk ((term (slot-value widget 'text))
+                     (fonts (list font))
+                     (colors (list color)))
             (cond
-             ((eq? 'button (first term))
-              (let ((handler (second term))
-                    (buttonx1 x))
-                (walk (cddr term) fonts colors)
-                (push! (make-button (make-xrectangle buttonx1 0
-                                                     (- x buttonx1)
-                                                     (xrectangle-height wrect))
-                                    handler)
-                       (slot-value widget 'buttons))))
-             ((eq? 'color (first term))
-              (walk (cddr term) fonts (cons (make-color (second term)) colors)))
-             ((eq? 'font (first term))
-              (walk (cddr term) (cons (window-get-create-font window (second term)) fonts) colors))
-             (else
-              (walk (first term) fonts colors)
-              (walk (rest term) fonts colors))))))))))
+             ((string? term)
+              (xft-draw-string draw (first fonts) (first colors) x baseline term)
+              (inc! x (xglyphinfo-xoff (xft-text-extents display (first fonts) term))))
+             ((pair? term)
+              (cond
+               ((eq? 'button (first term))
+                (let ((handler (second term))
+                      (buttonx1 x))
+                  (walk (cddr term) fonts colors)
+                  (push! (make-button (make-xrectangle buttonx1 0
+                                                       (- x buttonx1)
+                                                       (xrectangle-height wrect))
+                                      handler)
+                         (slot-value widget 'buttons))))
+               ((eq? 'color (first term))
+                (walk (cddr term) fonts (cons (make-color (second term)) colors)))
+               ((eq? 'font (first term))
+                (walk (cddr term) (cons (window-get-create-font window (second term)) fonts) colors))
+               (else
+                (walk (first term) fonts colors)
+                (walk (rest term) fonts colors)))))))))))
 
 (define-method (widget-preferred-baseline (widget <text-widget>))
   (xftfont-ascent (window-get-create-font
@@ -543,8 +541,8 @@
     (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
-  (xu:with-xcontext *xdisplay* (display)
-    (let ((window (slot-value widget 'window)))
+  (let ((window (slot-value widget 'window)))
+    (xu:with-xcontext (slot-value window 'xcontext) (display)
       (define (x-extent str font)
         (xglyphinfo-xoff
          (xft-text-extents display
@@ -709,7 +707,6 @@
   (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
       (xcontext display)
     (assert display)
-    (set! *xdisplay* xcontext)
 
     (parameterize ((current-xcontext xcontext))
     (let ((x-fd (xconnectionnumber display))
