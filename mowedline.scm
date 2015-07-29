@@ -129,7 +129,7 @@
 (define-method (initialize-instance (window <window>))
   (call-next-method)
   (xu:with-xcontext (slot-value window 'xcontext)
-      (display screen)
+      (xcontext display screen)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window 'widgets))
     (let* ((shei (xdisplayheight display screen))
@@ -183,17 +183,17 @@
       (xu:window-property-set display xwindow "_NET_WM_PID"
                               (xu:make-number-property (current-process-id)))
       (xu:window-property-set display xwindow "_NET_WM_WINDOW_TYPE"
-                              (xu:make-atom-property display "_NET_WM_TYPE_DOCK"))
+                              (xu:make-atom-property xcontext "_NET_WM_TYPE_DOCK"))
       (xu:window-property-set display xwindow "_NET_WM_DESKTOP"
                               (xu:make-number-property #xffffffff))
       (xu:window-property-set display xwindow "_NET_WM_STATE"
-                              (xu:make-atom-property display "_NET_WM_STATE_BELOW"))
+                              (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
       (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property display "_NET_WM_STATE_STICKY"))
+                                 (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
       (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property display "_NET_WM_STATE_SKIP_TASKBAR"))
+                                 (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
       (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property display "_NET_WM_STATE_SKIP_PAGER"))
+                                 (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
       ;; Struts: left, right, top, bottom,
       ;;         left_start_y, left_end_y, right_start_y, right_end_y,
