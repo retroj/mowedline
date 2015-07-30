@@ -90,6 +90,7 @@
 ;;; Window
 ;;;
 
+(define window-background (make-parameter #f))
 (define window-lower (make-parameter #t))
 (define window-position (make-parameter 'top))
 
@@ -116,6 +117,7 @@
    (margin-right initform: 0)
    (margin-bottom initform: 0)
    (margin-left initform: 0)
+   (background initform: (window-background))
    (widgets initform: (list))
    (xwindow)
    (fonts initform: (list))
@@ -163,13 +165,19 @@
         (for-each widget-init (slot-value window 'widgets))
         (window-update-widget-dimensions! window)
 
-        (let ((attr (make-xsetwindowattributes)))
-          (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
+        (let* ((attr (make-xsetwindowattributes))
+               (background (slot-value window 'background))
+               (flags #f))
+          (cond
+           ((eq? #f background)
+            (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
+            (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen)))
+           ((eq? 'inherit background)
+            (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
+            (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE)))
           (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
           (set-xsetwindowattributes-override_redirect! attr 1)
-          (xchangewindowattributes display xwindow
-                                   (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                                   attr))
+          (xchangewindowattributes display xwindow flags attr))
 
         ;; Window Properties
         ;;
