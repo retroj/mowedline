@@ -188,11 +188,11 @@
                                 (xu:make-number-property #xffffffff))
         (xu:window-property-set xcontext "_NET_WM_STATE"
                                 (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
-        (xu:window-property-append display xwindow "_NET_WM_STATE"
+        (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
-        (xu:window-property-append display xwindow "_NET_WM_STATE"
+        (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
-        (xu:window-property-append display xwindow "_NET_WM_STATE"
+        (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
         ;; Struts: left, right, top, bottom,
