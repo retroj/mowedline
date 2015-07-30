@@ -169,12 +169,12 @@
                (background (slot-value window 'background))
                (flags #f))
           (cond
-           ((eq? #f background)
-            (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
-            (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen)))
            ((eq? 'inherit background)
             (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
-            (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE)))
+            (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE))
+           (else
+            (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
+            (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))))
           (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
           (set-xsetwindowattributes-override_redirect! attr 1)
           (xchangewindowattributes display xwindow flags attr))
