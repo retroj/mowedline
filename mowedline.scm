@@ -385,7 +385,7 @@
 (define-generic (widget-init widget))
 (define-generic (widget-update widget params))
 
-(define widget-background-color (make-parameter (list 0 0 0 1)))
+(define widget-background-color (make-parameter #f))
 (define widget-flex (make-parameter #f))
 
 (define-class <widget> ()
