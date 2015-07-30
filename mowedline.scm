@@ -75,7 +75,7 @@
   (%quit-mowedline #t))
 
 (define (switch-to-desktop desktop)
-  (xu:switch-to-desktop (xu:xcontext-display (current-xcontext)) desktop))
+  (xu:switch-to-desktop (current-xcontext) desktop))
 
 
 ;;;
