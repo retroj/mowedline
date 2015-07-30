@@ -358,11 +358,11 @@
 
 (define (window-handle-event/buttonpress window event)
   (parameterize ((current-xcontext (slot-value window 'xcontext)))
-  (and-let* ((widget (window-widget-at-position
-                      window (xbuttonpressedevent-x event)))
-             (button (widget-button-at-position
-                      widget (xbuttonpressedevent-x event))))
-    ((button-handler button) widget))))
+    (and-let* ((widget (window-widget-at-position
+                        window (xbuttonpressedevent-x event)))
+               (button (widget-button-at-position
+                        widget (xbuttonpressedevent-x event))))
+      ((button-handler button) widget))))
 
 (define (window-handle-event window event)
   (and-let* ((handlers (alist-ref
