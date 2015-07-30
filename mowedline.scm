@@ -152,79 +152,79 @@
                      (xblackpixel display screen)
                      (xwhitepixel display screen))))
       (assert xwindow)
-      (set! (slot-value window 'xcontext)
-            (xu:make-xcontext (current-xcontext) window: xwindow))
-      (set! (slot-value window 'width) width)
-      (set! (slot-value window 'height) height)
-      (set! (slot-value window 'baseline)
-            (fold max 1 (map widget-preferred-baseline
-                             (slot-value window 'widgets))))
-      (set! (slot-value window 'xwindow) xwindow)
-      (for-each widget-init (slot-value window 'widgets))
-      (window-update-widget-dimensions! window)
+      (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
+        (set! (slot-value window 'xcontext) xcontext)
+        (set! (slot-value window 'width) width)
+        (set! (slot-value window 'height) height)
+        (set! (slot-value window 'baseline)
+              (fold max 1 (map widget-preferred-baseline
+                               (slot-value window 'widgets))))
+        (set! (slot-value window 'xwindow) xwindow)
+        (for-each widget-init (slot-value window 'widgets))
+        (window-update-widget-dimensions! window)
 
-      (let ((attr (make-xsetwindowattributes)))
-        (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
-        (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
-        (set-xsetwindowattributes-override_redirect! attr 1)
-        (xchangewindowattributes display xwindow
-                                 (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                                 attr))
+        (let ((attr (make-xsetwindowattributes)))
+          (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
+          (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
+          (set-xsetwindowattributes-override_redirect! attr 1)
+          (xchangewindowattributes display xwindow
+                                   (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                                   attr))
 
-      ;; Window Properties
-      ;;
-      (xstorename display xwindow "mowedline")
+        ;; Window Properties
+        ;;
+        (xstorename display xwindow "mowedline")
 
-      (let ((p (make-xtextproperty))
-            (str (xu:make-text-property (get-host-name))))
-        (xstringlisttotextproperty str 1 p)
-        (xsetwmclientmachine display xwindow p))
+        (let ((p (make-xtextproperty))
+              (str (xu:make-text-property (get-host-name))))
+          (xstringlisttotextproperty str 1 p)
+          (xsetwmclientmachine display xwindow p))
 
-      (xu:window-property-set display xwindow "_NET_WM_PID"
-                              (xu:make-number-property (current-process-id)))
-      (xu:window-property-set display xwindow "_NET_WM_WINDOW_TYPE"
-                              (xu:make-atom-property xcontext "_NET_WM_TYPE_DOCK"))
-      (xu:window-property-set display xwindow "_NET_WM_DESKTOP"
-                              (xu:make-number-property #xffffffff))
-      (xu:window-property-set display xwindow "_NET_WM_STATE"
-                              (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
-      (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
-      (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
-      (xu:window-property-append display xwindow "_NET_WM_STATE"
-                                 (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
+        (xu:window-property-set xcontext "_NET_WM_PID"
+                                (xu:make-number-property (current-process-id)))
+        (xu:window-property-set xcontext "_NET_WM_WINDOW_TYPE"
+                                (xu:make-atom-property xcontext "_NET_WM_TYPE_DOCK"))
+        (xu:window-property-set xcontext "_NET_WM_DESKTOP"
+                                (xu:make-number-property #xffffffff))
+        (xu:window-property-set xcontext "_NET_WM_STATE"
+                                (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
+        (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                   (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
+        (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                   (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
+        (xu:window-property-append display xwindow "_NET_WM_STATE"
+                                   (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
-      ;; Struts: left, right, top, bottom,
-      ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-      ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-      ;;
-      ;; so for a top panel, we set top, top_start_x, and top_end_x.
-      (let ((strut-height (+ height (slot-value window 'margin-top)
-                             (slot-value window 'margin-bottom))))
-        (xu:window-property-set display xwindow "_NET_WM_STRUT_PARTIAL"
-                                (xu:make-numbers-property
-                                 (if (eq? position 'bottom)
-                                     (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
-                                     (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
+        ;; Struts: left, right, top, bottom,
+        ;;         left_start_y, left_end_y, right_start_y, right_end_y,
+        ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
+        ;;
+        ;; so for a top panel, we set top, top_start_x, and top_end_x.
+        (let ((strut-height (+ height (slot-value window 'margin-top)
+                               (slot-value window 'margin-bottom))))
+          (xu:window-property-set xcontext "_NET_WM_STRUT_PARTIAL"
+                                  (xu:make-numbers-property
+                                   (if (eq? position 'bottom)
+                                       (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
+                                       (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
 
-      (let ((d-atom (xinternatom display "WM_DELETE_WINDOW" 1)))
-        (let-location ((atm unsigned-long d-atom))
-          (xsetwmprotocols display xwindow (location atm) 1)))
+        (let ((d-atom (xinternatom display "WM_DELETE_WINDOW" 1)))
+          (let-location ((atm unsigned-long d-atom))
+            (xsetwmprotocols display xwindow (location atm) 1)))
 
-      (when (window-lower)
-        (xlowerwindow display xwindow))
+        (when (window-lower)
+          (xlowerwindow display xwindow))
 
-      (xselectinput display
-                    (slot-value window 'xwindow)
-                    (bitwise-ior EXPOSUREMASK
-                                 BUTTONPRESSMASK
-                                 STRUCTURENOTIFYMASK))
-      (xmapwindow display (slot-value window 'xwindow))
-      (xnextevent display (make-xevent))
-      (window-expose window)
+        (xselectinput display
+                      (slot-value window 'xwindow)
+                      (bitwise-ior EXPOSUREMASK
+                                   BUTTONPRESSMASK
+                                   STRUCTURENOTIFYMASK))
+        (xmapwindow display (slot-value window 'xwindow))
+        (xnextevent display (make-xevent))
+        (window-expose window)
 
-      (push! window *windows*))))
+        (push! window *windows*)))))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window 'fonts)))
