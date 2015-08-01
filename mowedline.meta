@@ -12,7 +12,7 @@
         miscmacros
         xft
         xlib
-        (xlib-utils 0.2)
+        (xlib-utils 0.3)
         xtypes)
  (author "John J. Foerch")
  (synopsis "an X status bar program"))
