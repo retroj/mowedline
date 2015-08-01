@@ -131,7 +131,7 @@
 (define-method (initialize-instance (window <window>))
   (call-next-method)
   (xu:with-xcontext (slot-value window 'xcontext)
-      (xcontext display screen)
+      (xcontext display screen root)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window 'widgets))
     (let* ((shei (xdisplayheight display screen))
@@ -148,7 +148,7 @@
                          (else (slot-value window 'margin-top))))
            (xwindow (xcreatesimplewindow
                      display
-                     (xrootwindow display screen)
+                     root
                      (slot-value window 'margin-left)
                      window-top width height 0
                      (xblackpixel display screen)
