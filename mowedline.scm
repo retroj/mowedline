@@ -214,9 +214,7 @@
                                        (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
                                        (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
 
-        (let ((d-atom (xinternatom display "WM_DELETE_WINDOW" 1)))
-          (let-location ((atm unsigned-long d-atom))
-            (xsetwmprotocols display xwindow (location atm) 1)))
+        (xu:set-wm-protocols xcontext '(WM_DELETE_WINDOW))
 
         (when (window-lower)
           (xlowerwindow display xwindow))
