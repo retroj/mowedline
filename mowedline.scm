@@ -119,7 +119,6 @@
    (margin-left initform: 0)
    (background initform: (window-background))
    (widgets initform: (list))
-   (xwindow)
    (fonts initform: (list))
    (event-handlers initform: (window-default-event-handlers))))
 
@@ -161,7 +160,6 @@
         (set! (slot-value window 'baseline)
               (fold max 1 (map widget-preferred-baseline
                                (slot-value window 'widgets))))
-        (set! (slot-value window 'xwindow) xwindow)
         (for-each widget-init (slot-value window 'widgets))
         (window-update-widget-dimensions! window)
 
@@ -223,12 +221,11 @@
         (when (window-lower)
           (xlowerwindow display xwindow))
 
-        (xselectinput display
-                      (slot-value window 'xwindow)
+        (xselectinput display xwindow
                       (bitwise-ior EXPOSUREMASK
                                    BUTTONPRESSMASK
                                    STRUCTURENOTIFYMASK))
-        (xmapwindow display (slot-value window 'xwindow))
+        (xmapwindow display xwindow)
         (xnextevent display (make-xevent))
         (window-expose window)
 
@@ -251,8 +248,9 @@
     ;; exposing a given rectangle means drawing all widgets which
     ;; intersect that rectangle, passing the rectangle in to them so they
     ;; can use it as a mask (via a region).
-    (xu:with-xcontext (slot-value window 'xcontext) (display)
-      (let ((widgets (slot-value window 'widgets))
+    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+      (let ((xwindow (xu:xcontext-window xcontext))
+            (widgets (slot-value window 'widgets))
             (r (xcreateregion)))
         (xunionrectwithregion xrectangle (xcreateregion) r)
         (llog expose "window ~A, ~A"
@@ -285,7 +283,7 @@
                  (m (+ (xrectangle-x xrectangle)
                        (xrectangle-width xrectangle))))
             (when (> m p)
-              (xcleararea display (slot-value window 'xwindow)
+              (xcleararea display xwindow
                           p 0 (- m p) (slot-value window 'height)
                           0))))
         (xflush display))))
@@ -428,8 +426,8 @@
 
 (define-method (widget-draw (widget <widget>) region)
   (let ((window (slot-value widget 'window)))
-    (xu:with-xcontext (slot-value window 'xcontext) (display)
-      (let* ((xwindow (slot-value window 'xwindow))
+    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+      (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget 'xrectangle))
              (x (xrectangle-x wrect))
              (visual (xdefaultvisual display (xdefaultscreen display)))
@@ -497,8 +495,8 @@
 
 (define-method (widget-draw (widget <text-widget>) region)
   (let ((window (slot-value widget 'window)))
-    (xu:with-xcontext (slot-value window 'xcontext) (display)
-      (let* ((xwindow (slot-value window 'xwindow))
+    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+      (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget 'xrectangle))
              (font (window-get-create-font window (slot-value widget 'font)))
              (x (xrectangle-x wrect))
@@ -779,7 +777,9 @@
         (xnextevent display event)
         (and-let* ((xwindow (xevent-xany-window event))
                    (window (find (lambda (win)
-                                   (equal? (slot-value win 'xwindow) xwindow))
+                                   (equal? (xu:xcontext-window
+                                            (slot-value win 'xcontext))
+                                           xwindow))
                                  *windows*)))
           (window-handle-event window event))
         (x-eventloop))
