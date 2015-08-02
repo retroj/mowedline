@@ -20,7 +20,7 @@
 (module mowedline
     *
 
-(import chicken scheme foreign)
+(import chicken scheme)
 
 (use srfi-1
      srfi-4 ;; homogeneous numeric vectors
@@ -35,7 +35,6 @@
      filepath
      (prefix imperative-command-line-a icla:)
      list-utils
-     lolevel
      mailbox
      miscmacros
      ports
