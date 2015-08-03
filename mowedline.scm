@@ -434,17 +434,15 @@
           (apply make-xftcolor display visual colormap
                  (ensure-list c)))
         (let ((background-color (slot-value widget 'background-color)))
-          (cond
-           (background-color
-            (xftdraw-set-clip! draw region)
-            (xft-draw-rect draw (make-color background-color) x 0
-                           (xrectangle-width wrect)
-                           (xrectangle-height wrect)))
-           (else
-            (xcleararea display xwindow x 0
-                        (xrectangle-width wrect)
-                        (xrectangle-height wrect)
-                        0))))))))
+          (xftdraw-set-clip! draw region)
+          (if background-color
+              (xft-draw-rect draw (make-color background-color) x 0
+                             (xrectangle-width wrect)
+                             (xrectangle-height wrect))
+              (xcleararea display xwindow x 0
+                          (xrectangle-width wrect)
+                          (xrectangle-height wrect)
+                          0)))))))
 
 (define (widget-button-at-position widget x)
   (find
@@ -507,17 +505,15 @@
         (set! (slot-value widget 'buttons) (list))
         (let ((color (make-color (slot-value widget 'color)))
               (background-color (slot-value widget 'background-color)))
-          (cond
-           (background-color
-            (xftdraw-set-clip! draw region)
-            (xft-draw-rect draw (make-color background-color) x 0
-                           (xrectangle-width wrect)
-                           (xrectangle-height wrect)))
-           (else
-            (xcleararea display xwindow x 0
-                        (xrectangle-width wrect)
-                        (xrectangle-height wrect)
-                        0)))
+          (xftdraw-set-clip! draw region)
+          (if background-color
+              (xft-draw-rect draw (make-color background-color) x 0
+                             (xrectangle-width wrect)
+                             (xrectangle-height wrect))
+              (xcleararea display xwindow x 0
+                          (xrectangle-width wrect)
+                          (xrectangle-height wrect)
+                          0))
           (let walk ((term (slot-value widget 'text))
                      (fonts (list font))
                      (colors (list color)))
