@@ -59,7 +59,7 @@
 
 (define current-xcontext (make-parameter #f))
 
-(define *windows* (list))
+(define xcontexts (list))
 
 (define *widgets* (make-hash-table test: equal?))
 
@@ -99,12 +99,6 @@
       (inc! last)
       last)))
 
-(define (window-default-event-handlers)
-  (list
-   (L CLIENTMESSAGE window-handle-event/clientmessage)
-   (L EXPOSE window-handle-event/expose)
-   (L BUTTONPRESS window-handle-event/buttonpress)))
-
 (define-class <window> ()
   ((id initform: (window-get-next-id))
    (xcontext initform: (current-xcontext))
@@ -118,8 +112,7 @@
    (margin-left initform: 0)
    (background initform: (window-background))
    (widgets initform: (list))
-   (fonts initform: (list))
-   (event-handlers initform: (window-default-event-handlers))))
+   (fonts initform: (list))))
 
 (define (window . args)
   (receive (props widgets)
@@ -226,7 +219,23 @@
         (xnextevent display (make-xevent))
         (window-expose window)
 
-        (push! window *windows*)))))
+        (xu:xcontext-data-set! xcontext window)
+        (xu:add-event-handler! xcontext
+                               CLIENTMESSAGE
+                               STRUCTURENOTIFYMASK
+                               window-handle-event/clientmessage
+                               #f)
+        (xu:add-event-handler! xcontext
+                               EXPOSE
+                               EXPOSUREMASK
+                               window-handle-event/expose
+                               #f)
+        (xu:add-event-handler! xcontext
+                               BUTTONPRESS
+                               BUTTONPRESSMASK
+                               window-handle-event/buttonpress
+                               #f)
+        (push! xcontext xcontexts)))))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window 'fonts)))
@@ -347,33 +356,27 @@
                     (xrectangle-width wrect))))))
    (slot-value window 'widgets)))
 
-(define (window-handle-event/clientmessage window event)
+(define (window-handle-event/clientmessage xcontext event)
   ;;XXX: there may be important information in
   ;;     xclientmessageevent-message_type
   (quit-mowedline))
 
-(define (window-handle-event/expose window event)
-  (and-let* ((x (xexposeevent-x event))
+(define (window-handle-event/expose xcontext event)
+  (and-let* ((window (xu:xcontext-data xcontext))
+             (x (xexposeevent-x event))
              (y (xexposeevent-y event))
              (width (xexposeevent-width event))
              (height (xexposeevent-height event)))
     (window-expose window (make-xrectangle x y width height))))
 
-(define (window-handle-event/buttonpress window event)
+(define (window-handle-event/buttonpress xcontext event)
+  (let ((window (xu:xcontext-data xcontext)))
   (parameterize ((current-xcontext (slot-value window 'xcontext)))
     (and-let* ((widget (window-widget-at-position
                         window (xbuttonpressedevent-x event)))
                (button (widget-button-at-position
                         widget (xbuttonpressedevent-x event))))
-      ((button-handler button) widget))))
-
-(define (window-handle-event window event)
-  (and-let* ((handlers (alist-ref
-                        (xevent-type event)
-                        (slot-value window 'event-handlers))))
-    (for-each
-     (lambda (handler) (handler window event))
-     handlers)))
+      ((button-handler button) widget)))))
 
 
 ;;;
@@ -744,7 +747,8 @@
         (eval '(import mowedline))
         (load path))
 
-      (when (null? *windows*)
+      (when (null? xcontexts) ;;XXX: it is possible for there to be
+                              ;;     non-mowedline-windows in there
         (make <window>
           'widgets
           (L (make <text-widget>
@@ -768,13 +772,7 @@
         (unless (> (xpending display) 0)
           (thread-wait-for-i/o! x-fd input:))
         (xnextevent display event)
-        (and-let* ((xwindow (xevent-xany-window event))
-                   (window (find (lambda (win)
-                                   (equal? (xu:xcontext-window
-                                            (slot-value win 'xcontext))
-                                           xwindow))
-                                 *windows*)))
-          (window-handle-event window event))
+        (xu:handle-event event xcontexts)
         (x-eventloop))
 
       (define (dbus-eventloop)
