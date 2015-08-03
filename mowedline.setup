@@ -15,8 +15,8 @@
 
 (install-extension 'mowedline
   '("mowedline.so" "mowedline.import.so" "llog.import.so")
-  '((version "0.2.7")))
+  '((version "0.2.8")))
 
 (install-program 'mowedline
   '("mowedline" "mowedline-client")
-  '((version "0.2.7")))
+  '((version "0.2.8")))
