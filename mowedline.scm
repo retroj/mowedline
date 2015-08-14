@@ -119,16 +119,17 @@
       (split-properties args)
     (apply make <window> 'widgets widgets props)))
 
-(define (create-mowedline-window display screen parent x y width height)
+(define (window-create-xwindow xcontext x y width height)
+  (xu:with-xcontext xcontext (display screen window)
   (let ((attr (make-xsetwindowattributes)))
     (set-xsetwindowattributes-background_pixel! attr (xwhitepixel display screen))
     (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
     (set-xsetwindowattributes-override_redirect! attr 1)
 
-    (xcreatewindow display parent x y width height 0
+    (xcreatewindow display window x y width height 0
                    COPYFROMPARENT COPYFROMPARENT #f
                    (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                   attr)))
+                   attr))))
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
@@ -148,9 +149,9 @@
            (window-top (case position
                          ((bottom) (- shei (slot-value window 'margin-bottom) height))
                          (else (slot-value window 'margin-top))))
-           (xwindow (create-mowedline-window display screen root
-                                             (slot-value window 'margin-left)
-                                             window-top width height)))
+           (xwindow (window-create-xwindow xcontext
+                                           (slot-value window 'margin-left)
+                                           window-top width height)))
       (assert xwindow)
       (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
         (set! (slot-value window 'xcontext) xcontext)
