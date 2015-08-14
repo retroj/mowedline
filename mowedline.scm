@@ -119,10 +119,17 @@
       (split-properties args)
     (apply make <window> 'widgets widgets props)))
 
-(define (window-create-xwindow xcontext x y width height)
+(define (window-create-xwindow xcontext x y width height background)
   (xu:with-xcontext xcontext (display screen window)
-    (let ((attr (make-xsetwindowattributes)))
-      (set-xsetwindowattributes-background_pixel! attr (xwhitepixel display screen))
+    (let ((attr (make-xsetwindowattributes))
+          (flags #f))
+      (cond
+       ((eq? 'inherit background)
+        (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
+        (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE))
+       (else
+        (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
+        (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))))
       (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
       (set-xsetwindowattributes-override_redirect! attr 1)
       (xcreatewindow display window x y width height 0
@@ -150,7 +157,8 @@
                          (else (slot-value window 'margin-top))))
            (xwindow (window-create-xwindow xcontext
                                            (slot-value window 'margin-left)
-                                           window-top width height)))
+                                           window-top width height
+                                           (slot-value window 'background))))
       (assert xwindow)
       (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
         (set! (slot-value window 'xcontext) xcontext)
@@ -161,20 +169,6 @@
                                (slot-value window 'widgets))))
         (for-each widget-init (slot-value window 'widgets))
         (window-update-widget-dimensions! window)
-
-        (let* ((attr (make-xsetwindowattributes))
-               (background (slot-value window 'background))
-               (flags #f))
-          (cond
-           ((eq? 'inherit background)
-            (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
-            (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE))
-           (else
-            (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
-            (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))))
-          (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
-          (set-xsetwindowattributes-override_redirect! attr 1)
-          (xchangewindowattributes display xwindow flags attr))
 
         ;; Window Properties
         ;;
