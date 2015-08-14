@@ -221,11 +221,6 @@
 
         (xu:xcontext-data-set! xcontext window)
         (xu:add-event-handler! xcontext
-                               CLIENTMESSAGE
-                               STRUCTURENOTIFYMASK
-                               window-handle-event/clientmessage
-                               #f)
-        (xu:add-event-handler! xcontext
                                EXPOSE
                                EXPOSUREMASK
                                window-handle-event/expose
@@ -355,11 +350,6 @@
             (< x (+ (xrectangle-x wrect)
                     (xrectangle-width wrect))))))
    (slot-value window 'widgets)))
-
-(define (window-handle-event/clientmessage xcontext event)
-  ;;XXX: there may be important information in
-  ;;     xclientmessageevent-message_type
-  (quit-mowedline))
 
 (define (window-handle-event/expose xcontext event)
   (and-let* ((window (xu:xcontext-data xcontext))
