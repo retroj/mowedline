@@ -121,15 +121,14 @@
 
 (define (window-create-xwindow xcontext x y width height)
   (xu:with-xcontext xcontext (display screen window)
-  (let ((attr (make-xsetwindowattributes)))
-    (set-xsetwindowattributes-background_pixel! attr (xwhitepixel display screen))
-    (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
-    (set-xsetwindowattributes-override_redirect! attr 1)
-
-    (xcreatewindow display window x y width height 0
-                   COPYFROMPARENT COPYFROMPARENT #f
-                   (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                   attr))))
+    (let ((attr (make-xsetwindowattributes)))
+      (set-xsetwindowattributes-background_pixel! attr (xwhitepixel display screen))
+      (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
+      (set-xsetwindowattributes-override_redirect! attr 1)
+      (xcreatewindow display window x y width height 0
+                     COPYFROMPARENT COPYFROMPARENT #f
+                     (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
+                     attr))))
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
