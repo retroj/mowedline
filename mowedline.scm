@@ -122,7 +122,8 @@
 (define (window-create-xwindow xcontext x y width height background)
   (xu:with-xcontext xcontext (display screen window)
     (let ((attr (make-xsetwindowattributes))
-          (flags #f))
+          (flags #f)
+          (visual (xdefaultvisual display screen)))
       (cond
        ((eq? 'inherit background)
         (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
@@ -133,7 +134,7 @@
       (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
       (set-xsetwindowattributes-override_redirect! attr 1)
       (xcreatewindow display window x y width height 0
-                     COPYFROMPARENT COPYFROMPARENT #f
+                     COPYFROMPARENT COPYFROMPARENT visual
                      (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
                      attr))))
 
