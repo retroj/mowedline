@@ -223,6 +223,11 @@
 
         (xu:xcontext-data-set! xcontext window)
         (xu:add-event-handler! xcontext
+                               CLIENTMESSAGE
+                               #f
+                               window-handle-event/clientmessage
+                               #f)
+        (xu:add-event-handler! xcontext
                                EXPOSE
                                EXPOSUREMASK
                                window-handle-event/expose
@@ -352,6 +357,14 @@
             (< x (+ (xrectangle-x wrect)
                     (xrectangle-width wrect))))))
    (slot-value window 'widgets)))
+
+(define (window-handle-event/clientmessage xcontext event)
+  (xu:with-xcontext xcontext (display)
+    (let ((WM_PROTOCOLS (xinternatom display "WM_PROTOCOLS" 1))
+          (WM_DELETE_WINDOW (xinternatom display "WM_DELETE_WINDOW" 1)))
+      (when (and (= WM_PROTOCOLS (xclientmessageevent-message_type event))
+                 (= WM_DELETE_WINDOW (xu:clientmessage-l0 event)))
+        (quit-mowedline)))))
 
 (define (window-handle-event/expose xcontext event)
   (and-let* ((window (xu:xcontext-data xcontext))
