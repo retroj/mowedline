@@ -135,8 +135,7 @@
       (set-xsetwindowattributes-override_redirect! attr 1)
       (xcreatewindow display window x y width height 0
                      COPYFROMPARENT COPYFROMPARENT visual
-                     (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT)
-                     attr))))
+                     flags attr))))
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
