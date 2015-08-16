@@ -363,7 +363,7 @@
     (let ((WM_PROTOCOLS (xinternatom display "WM_PROTOCOLS" 1))
           (WM_DELETE_WINDOW (xinternatom display "WM_DELETE_WINDOW" 1)))
       (when (and (= WM_PROTOCOLS (xclientmessageevent-message_type event))
-                 (= WM_DELETE_WINDOW (xu:clientmessage-l0 event)))
+                 (= WM_DELETE_WINDOW (first (xu:xclientmessageevent-data-l event))))
         (quit-mowedline)))))
 
 (define (window-handle-event/expose xcontext event)
