@@ -134,7 +134,7 @@
       (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
       (set-xsetwindowattributes-override_redirect! attr 1)
       (xcreatewindow display window x y width height 0
-                     COPYFROMPARENT COPYFROMPARENT visual
+                     COPYFROMPARENT INPUTOUTPUT visual
                      flags attr))))
 
 (define-method (initialize-instance (window <window>))
