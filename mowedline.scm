@@ -123,18 +123,28 @@
   (xu:with-xcontext xcontext (display screen window)
     (let ((attr (make-xsetwindowattributes))
           (flags #f)
-          (visual (xdefaultvisual display screen)))
+          (visual (xdefaultvisual display screen))
+          (visual-depth COPYFROMPARENT))
       (cond
        ((eq? 'inherit background)
         (set! flags (bitwise-ior CWBACKPIXMAP CWBORDERPIXEL CWOVERRIDEREDIRECT))
         (set-xsetwindowattributes-background_pixmap! attr PARENTRELATIVE))
+       ((eq? 'transparent background)
+        (let ((vinfo (make-xvisualinfo)))
+          (xmatchvisualinfo display screen 32 TRUECOLOR vinfo)
+          (set! visual (xvisualinfo-visual vinfo))
+          (set! visual-depth (xvisualinfo-depth vinfo))
+          (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWCOLORMAP CWOVERRIDEREDIRECT))
+          (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))
+          (set-xsetwindowattributes-colormap!
+           attr (xcreatecolormap display window (xvisualinfo-visual vinfo) ALLOCNONE))))
        (else
         (set! flags (bitwise-ior CWBACKPIXEL CWBORDERPIXEL CWOVERRIDEREDIRECT))
         (set-xsetwindowattributes-background_pixel! attr (xblackpixel display screen))))
       (set-xsetwindowattributes-border_pixel! attr (xblackpixel display screen))
       (set-xsetwindowattributes-override_redirect! attr 1)
       (xcreatewindow display window x y width height 0
-                     COPYFROMPARENT INPUTOUTPUT visual
+                     visual-depth INPUTOUTPUT visual
                      flags attr))))
 
 (define-method (initialize-instance (window <window>))
@@ -434,8 +444,10 @@
       (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget 'xrectangle))
              (x (xrectangle-x wrect))
-             (visual (xdefaultvisual display (xdefaultscreen display)))
-             (colormap (xdefaultcolormap display (xdefaultscreen display)))
+             (attr (make-xwindowattributes))
+             (_ (xgetwindowattributes display xwindow attr))
+             (visual (xwindowattributes-visual attr))
+             (colormap (xwindowattributes-colormap attr))
              (draw (xftdraw-create display xwindow visual colormap)))
         (define (make-color c)
           (apply make-xftcolor display visual colormap
@@ -503,8 +515,10 @@
              (font (window-get-create-font window (slot-value widget 'font)))
              (x (xrectangle-x wrect))
              (baseline (slot-value window 'baseline))
-             (visual (xdefaultvisual display (xdefaultscreen display)))
-             (colormap (xdefaultcolormap display (xdefaultscreen display)))
+             (attr (make-xwindowattributes))
+             (_ (xgetwindowattributes display xwindow attr))
+             (visual (xwindowattributes-visual attr))
+             (colormap (xwindowattributes-colormap attr))
              (draw (xftdraw-create display xwindow visual colormap)))
         (define (make-color c)
           (apply make-xftcolor display visual colormap
