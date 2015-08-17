@@ -708,6 +708,36 @@
        "")))))
 
 
+;; Active Window Title
+;;
+(define-class <active-window-title> (<text-widget>)
+  ())
+
+(define (widget:active-window-title . args)
+  (apply make <active-window-title> args))
+
+(define-method (widget-init (widget <active-window-title>))
+  (call-next-method)
+  (let* ((window (slot-value widget 'window))
+         (xcontext (slot-value window 'xcontext)))
+    (xu:with-xcontext xcontext (display screen root)
+      (let ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
+            (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
+        (xu:add-event-handler! root-xcontext
+                               PROPERTYNOTIFY
+                               PROPERTYCHANGEMASK
+                               (lambda (xcontext event)
+                                 (let ((title (xu:active-window-title root-xcontext)))
+                                   (update widget (or title ""))))
+                               ;; guard
+                               (lambda (event)
+                                 (= net-active-window-atom (xpropertyevent-atom event))))
+        ;;XXX: we need to make a general interface so that widgets are not
+        ;;     clobbering each other's eventmasks
+        (xselectinput display root (bitwise-ior PROPERTYCHANGEMASK))
+        (widget-update widget (list (or (xu:active-window-title root-xcontext) "")))))))
+
+
 ;;;
 ;;; Server
 ;;;
