@@ -29,6 +29,7 @@
      srfi-18 ;; threads
      srfi-69 ;; hash tables
      coops
+     (only coops-utils instance-of?)
      data-structures
      (prefix dbus dbus:)
      extras
@@ -742,6 +743,8 @@
       (xcontext display)
     (assert display)
 
+    (push! xcontext xcontexts) ;; root xcontext
+
     (parameterize ((current-xcontext xcontext))
       (let ((x-fd (xconnectionnumber display))
             (event (make-xevent)))
@@ -765,8 +768,8 @@
           (eval '(import mowedline))
           (load path))
 
-        (when (null? xcontexts) ;;XXX: it is possible for there to be
-                                ;;     non-mowedline-windows in there
+        (unless (find (lambda (xc) (instance-of? (xu:xcontext-data xc) <window>))
+                      xcontexts)
           (make <window>
             'widgets
             (L (make <text-widget>
