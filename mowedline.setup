@@ -1,5 +1,7 @@
 ;; -*- scheme -*-
 
+(load "version.scm")
+
 (run (chicken -to-stdout -emit-all-import-libraries mowedline.scm >/dev/null))
 (compile -s mowedline.scm
          -prologue llog.import.scm
@@ -15,8 +17,8 @@
 
 (install-extension 'mowedline
   '("mowedline.so" "mowedline.import.so" "llog.import.so")
-  '((version "0.2.8")))
+  `((version ,version)))
 
 (install-program 'mowedline
   '("mowedline" "mowedline-client")
-  '((version "0.2.8")))
+  `((version ,version)))
