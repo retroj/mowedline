@@ -868,6 +868,9 @@
  ((clock)
   (push! (make <clock>)
          *default-widgets*))
+ ((active-window-title)
+  (push! (make <active-window-title>)
+         *default-widgets*))
  ((bg color)
   doc: "set default background-color"
   (widget-background-color color))
