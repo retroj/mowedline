@@ -205,13 +205,13 @@
         (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
-        ;; Struts: left, right, top, bottom,
-        ;;         left_start_y, left_end_y, right_start_y, right_end_y,
-        ;;         top_start_x, top_end_x, bottom_start_x, bottom_end_x
-        ;;
-        ;; so for a top panel, we set top, top_start_x, and top_end_x.
         (let ((strut-height (+ height (slot-value window 'margin-top)
                                (slot-value window 'margin-bottom))))
+          (xu:window-property-set xcontext "_NET_WM_STRUT"
+                                  (xu:make-numbers-property
+                                   (if (eq? position 'bottom)
+                                       (list 0 0 0 strut-height)
+                                       (list 0 0 strut-height 0))))
           (xu:window-property-set xcontext "_NET_WM_STRUT_PARTIAL"
                                   (xu:make-numbers-property
                                    (if (eq? position 'bottom)
