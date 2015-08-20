@@ -321,7 +321,7 @@
          (flexsum 0)
          (wids (map       ;; sum widths & flexes, and accumulate widths
                 (lambda (widget)
-                  (and-let* ((flex (slot-value widget 'flex)))
+                  (and-let* ((flex (flex-enabled? (slot-value widget 'flex))))
                     (inc! flexsum flex))
                   (and-let* ((wid (widget-preferred-width widget)))
                     (inc! widsum wid)
@@ -341,7 +341,7 @@
     (for-each
      (lambda (widget wid)
        (let* ((rect (slot-value widget 'xrectangle))
-              (wid (or wid (flex-allocate (slot-value widget 'flex))))
+              (wid (or wid (flex-allocate (flex-enabled? (slot-value widget 'flex)))))
               (oldx (xrectangle-x rect))
               (oldwid (xrectangle-width rect)))
          (unless (and (= oldx x)
@@ -409,6 +409,11 @@
 (define widget-background-color (make-parameter #f))
 (define widget-flex (make-parameter #f))
 
+(define (flex-enabled? val)
+  (if (and val (> val 0))
+      val
+      #f))
+
 (define-class <widget> ()
   ((name initform: #f)
    (flex initform: (widget-flex))
@@ -435,7 +440,7 @@
 (define-method (widget-preferred-baseline (widget <widget>)) 0)
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
-  (if (slot-value widget 'flex)
+  (if (flex-enabled? (slot-value widget 'flex))
       #f
       1))
 
@@ -483,7 +488,7 @@
   (apply make <spacer> args))
 
 (define-method (widget-preferred-width (widget <spacer>))
-  (if (slot-value widget 'flex)
+  (if (flex-enabled? (slot-value widget 'flex))
       #f
       (or (slot-value widget 'width) 1)))
 
@@ -583,7 +588,7 @@
          (xft-text-extents display
                            (window-get-create-font window font)
                            str)))
-      (if (slot-value widget 'flex)
+      (if (flex-enabled? (slot-value widget 'flex))
           #f
           (let walk ((term (slot-value widget 'text))
                      (font (slot-value widget 'font)))
