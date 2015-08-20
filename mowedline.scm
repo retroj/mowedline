@@ -884,7 +884,7 @@
   (text-widget-color color))
  ((flex value)
   doc: "set the default flex value"
-  (widget-flex value))
+  (widget-flex (string->number value)))
  ((position value)
   doc: "set the default window position (top or bottom)"
   (window-position (string->symbol value)))
