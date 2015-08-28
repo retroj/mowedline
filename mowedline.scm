@@ -737,6 +737,22 @@
         (widget-update widget (list (or (xu:active-window-title root-xcontext) "")))))))
 
 
+;; Desktop Names
+;;
+(define-class <desktop-names> (<text-widget>)
+  ())
+
+(define (widget:desktop-names . args)
+  (apply make <desktop-names> args))
+
+(define-method (widget-init (widget <desktop-names>))
+  (call-next-method)
+  (let* ((window (slot-value widget 'window))
+         (xcontext (slot-value window 'xcontext)))
+    (pp (xu:number-of-desktops xcontext))
+    (pp (xu:desktop-names xcontext))))
+
+
 ;;;
 ;;; Server
 ;;;
@@ -869,6 +885,9 @@
          *default-widgets*))
  ((active-window-title)
   (push! (make <active-window-title>)
+         *default-widgets*))
+ ((desktop-names)
+  (push! (make <desktop-names>)
          *default-widgets*))
  ((bg color)
   doc: "set default background-color"
