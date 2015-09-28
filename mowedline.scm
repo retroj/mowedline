@@ -38,6 +38,7 @@
      list-utils
      mailbox
      miscmacros
+     pathname-expand
      ports
      posix
      xft
@@ -790,10 +791,11 @@
         (and-let*
             ((_ (not (bypass-startup-script)))
              (path
-              (or (startup-script)
-                  (find file-read-access?
-                        (L (filepath:join-path (L "~" ".mowedline"))
-                           (filepath:join-path (L "~" ".config" "mowedline" "init.scm")))))))
+              (pathname-expand
+               (or (startup-script)
+                   (find file-read-access?
+                         (L (filepath:join-path (L "~" ".mowedline"))
+                            (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
           (eval '(import mowedline))
           (load path))
 
