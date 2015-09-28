@@ -791,7 +791,7 @@
         (and-let*
             ((_ (not (bypass-startup-script)))
              (path
-              (or (pathname-expand (startup-script))
+              (or (startup-script)
                   (let ((~ (get-environment-variable "HOME")))
                     (find file-read-access?
                           (L (filepath:join-path (L ~ ".mowedline"))
