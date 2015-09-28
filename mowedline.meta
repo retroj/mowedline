@@ -11,7 +11,6 @@
         mailbox
         matchable
         miscmacros
-        pathname-expand
         xft
         xlib
         (xlib-utils "0.4.2")

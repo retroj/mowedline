@@ -38,7 +38,6 @@
      list-utils
      mailbox
      miscmacros
-     pathname-expand
      ports
      posix
      xft
