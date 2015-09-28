@@ -791,11 +791,11 @@
         (and-let*
             ((_ (not (bypass-startup-script)))
              (path
-              (pathname-expand
-               (or (startup-script)
-                   (find file-read-access?
-                         (L (filepath:join-path (L "~" ".mowedline"))
-                            (filepath:join-path (L "~" ".config" "mowedline" "init.scm"))))))))
+              (or (pathname-expand (startup-script))
+                  (let ((~ (get-environment-variable "HOME")))
+                    (find file-read-access?
+                          (L (filepath:join-path (L ~ ".mowedline"))
+                             (filepath:join-path (L ~ ".config" "mowedline" "init.scm"))))))))
           (eval '(import mowedline))
           (load path))
 
