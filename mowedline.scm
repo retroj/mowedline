@@ -794,7 +794,8 @@
                   (let ((~ (get-environment-variable "HOME")))
                     (find file-read-access?
                           (L (filepath:join-path (L ~ ".mowedline"))
-                             (filepath:join-path (L ~ ".config" "mowedline" "init.scm"))))))))
+                             (filepath:join-path (L (xdg-config-home)
+                                                    "mowedline" "init.scm"))))))))
           (eval '(import mowedline))
           (load path))
 

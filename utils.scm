@@ -17,7 +17,8 @@
 (import chicken scheme)
 
 (use (srfi 1)
-     matchable)
+     matchable
+     pathname-expand)
 
 ;;;
 ;;; Language
@@ -75,3 +76,14 @@
          (not (null? text)))
     (cons " " text))
    (else text)))
+
+
+;;;
+;;; Environment
+;;;
+
+(define (xdg-config-home)
+  (let ((path (get-environment-variable "XDG_CONFIG_HOME")))
+    (if (and path (not (string-null? path)))
+        path
+        (pathname-expand (filepath:join-path "~/.config")))))
