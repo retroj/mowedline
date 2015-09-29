@@ -86,4 +86,4 @@
   (let ((path (get-environment-variable "XDG_CONFIG_HOME")))
     (if (and path (not (string-null? path)))
         path
-        (pathname-expand (filepath:join-path "~/.config")))))
+        (pathname-expand "~/.config"))))
