@@ -36,7 +36,6 @@
      extras
      filepath
      (prefix imperative-command-line-a icla:)
-     list-utils
      miscmacros
      ports
      posix

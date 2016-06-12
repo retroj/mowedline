@@ -48,6 +48,11 @@
 ;;; Utils
 ;;;
 
+(define (ensure-list x)
+  (if (list? x)
+      x
+      (list x)))
+
 (define (split-properties lst)
   (bind (_ props . tail)
       (fold
