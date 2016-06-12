@@ -28,6 +28,7 @@
      srfi-14 ;; character sets
      srfi-18 ;; threads
      srfi-69 ;; hash tables
+     gochan
      coops
      (only coops-utils instance-of?)
      data-structures
@@ -36,7 +37,6 @@
      filepath
      (prefix imperative-command-line-a icla:)
      list-utils
-     mailbox
      miscmacros
      ports
      posix
@@ -68,7 +68,7 @@
 
 (define *command-line-windows* (list))
 
-(define *internal-events* (make-mailbox))
+(define *internal-events* (gochan))
 
 (define %quit-mowedline #f) ;; will be bound to a quit continuation
 (define (quit-mowedline . _)
@@ -612,7 +612,7 @@
     (let loop ()
       (let* ((time (seconds->local-time (current-seconds)))
              (s (vector-ref time 0)))
-        (mailbox-send!
+        (gochan-send
          *internal-events*
          (lambda ()
            (update widget
@@ -809,7 +809,7 @@
                  'text "mowedline"))))
 
         (define (client-quit)
-          (mailbox-send! *internal-events* quit-mowedline)
+          (gochan-send *internal-events* quit-mowedline)
           #t)
 
         (let ((dbus-context
@@ -833,7 +833,7 @@
           (dbus-eventloop))
 
         (define (internal-events-eventloop)
-          ((mailbox-receive! *internal-events*))
+          ((gochan-receive *internal-events*))
           (internal-events-eventloop))
 
         (call/cc

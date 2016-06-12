@@ -6,9 +6,9 @@
         coops-utils
         (dbus "0.92")
         filepath
+        gochan
         (imperative-command-line-a "0.4")
         list-utils
-        mailbox
         matchable
         miscmacros
         pathname-expand
