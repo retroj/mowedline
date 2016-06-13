@@ -3,7 +3,6 @@
 ((license "GPL3")
  (category misc)
  (needs coops
-        coops-utils
         (dbus "0.92")
         filepath
         gochan

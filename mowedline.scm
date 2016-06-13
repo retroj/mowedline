@@ -30,7 +30,6 @@
      srfi-69 ;; hash tables
      gochan
      coops
-     (only coops-utils instance-of?)
      data-structures
      (prefix dbus dbus:)
      extras

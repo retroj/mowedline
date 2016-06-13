@@ -17,6 +17,7 @@
 (import chicken scheme)
 
 (use (srfi 1)
+     coops
      matchable
      pathname-expand)
 
@@ -52,6 +53,12 @@
   (if (list? x)
       x
       (list x)))
+
+(define-inline (*subclass? c1 c2)
+  (or (eq? c1 c2) (subclass? c1 c2)))
+
+(define (instance-of? x class)
+  (*subclass? (class-of x) class))
 
 (define (split-properties lst)
   (bind (_ props . tail)
