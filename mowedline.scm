@@ -762,6 +762,13 @@
    (string-split symlist ", ")) 
   #t)
 
+(define (dbus-client-quit)
+  ;;XXX: special quit procedure for dbus thread. quitting from the dbus
+  ;;     thread prevents dbus from replying to its caller, so instead, we
+  ;;     send the quit message to the internal-events thread.
+  (gochan-send *internal-events* quit-mowedline)
+  #t)
+
 (define (make-command-line-windows)
   (for-each
    (lambda (widgets) (make <window> 'widgets widgets))
@@ -811,16 +818,12 @@
           (load-startup-script))
         (maybe-make-default-window)
 
-        (define (client-quit)
-          (gochan-send *internal-events* quit-mowedline)
-          #t)
-
         (let ((dbus-context
                (dbus:make-context service: 'mowedline.server
                                   interface: 'mowedline.interface)))
           (dbus:enable-polling-thread! enable: #f)
           (dbus:register-method dbus-context "update" update)
-          (dbus:register-method dbus-context "quit" client-quit)
+          (dbus:register-method dbus-context "quit" dbus-client-quit)
           (dbus:register-method dbus-context "log" log-watch))
 
         (define (x-eventloop)
