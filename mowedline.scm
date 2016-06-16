@@ -771,6 +771,16 @@
     (make <window> 'widgets (reverse! *default-widgets*))
     (set! *default-widgets* (list))))
 
+(define (maybe-make-default-window)
+  (unless (find (lambda (xc) (instance-of? (xu:xcontext-data xc) <window>))
+                xcontexts)
+    (make <window>
+      'widgets
+      (L (make <text-widget>
+           'name "default"
+           'flex 1
+           'text "mowedline")))))
+
 (define bypass-startup-script (make-parameter #f))
 
 (define startup-script (make-parameter #f))
@@ -796,20 +806,10 @@
     (parameterize ((current-xcontext xcontext))
       (let ((x-fd (xconnectionnumber display))
             (event (make-xevent)))
-
         (make-command-line-windows)
-
         (unless (bypass-startup-script)
           (load-startup-script))
-
-        (unless (find (lambda (xc) (instance-of? (xu:xcontext-data xc) <window>))
-                      xcontexts)
-          (make <window>
-            'widgets
-            (L (make <text-widget>
-                 'name "default"
-                 'flex 1
-                 'text "mowedline"))))
+        (maybe-make-default-window)
 
         (define (client-quit)
           (gochan-send *internal-events* quit-mowedline)
