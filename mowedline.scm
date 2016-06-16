@@ -766,6 +766,17 @@
 
 (define startup-script (make-parameter #f))
 
+(define (load-startup-script)
+  (let* ((~ (get-environment-variable "HOME"))
+         (path (or (startup-script)
+                   (find file-read-access?
+                         (L (filepath:join-path (L ~ ".mowedline"))
+                            (filepath:join-path (L (xdg-config-home)
+                                                   "mowedline" "init.scm")))))))
+    (when path
+      (eval '(import mowedline))
+      (load path))))
+
 (define (mowedline)
   (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
       (xcontext display)
@@ -786,17 +797,8 @@
           (make <window> 'widgets (reverse! *default-widgets*))
           (set! *default-widgets* (list)))
 
-        (and-let*
-            ((_ (not (bypass-startup-script)))
-             (path
-              (or (startup-script)
-                  (let ((~ (get-environment-variable "HOME")))
-                    (find file-read-access?
-                          (L (filepath:join-path (L ~ ".mowedline"))
-                             (filepath:join-path (L (xdg-config-home)
-                                                    "mowedline" "init.scm"))))))))
-          (eval '(import mowedline))
-          (load path))
+        (unless (bypass-startup-script)
+          (load-startup-script))
 
         (unless (find (lambda (xc) (instance-of? (xu:xcontext-data xc) <window>))
                       xcontexts)
