@@ -762,6 +762,15 @@
    (string-split symlist ", ")) 
   #t)
 
+(define (make-command-line-windows)
+  (for-each
+   (lambda (widgets) (make <window> 'widgets widgets))
+   *command-line-windows*)
+  (set! *command-line-windows* (list))
+  (unless (null? *default-widgets*)
+    (make <window> 'widgets (reverse! *default-widgets*))
+    (set! *default-widgets* (list))))
+
 (define bypass-startup-script (make-parameter #f))
 
 (define startup-script (make-parameter #f))
@@ -788,14 +797,7 @@
       (let ((x-fd (xconnectionnumber display))
             (event (make-xevent)))
 
-        (for-each
-         (lambda (widgets) (make <window> 'widgets widgets))
-         *command-line-windows*)
-        (set! *command-line-windows* (list))
-
-        (unless (null? *default-widgets*)
-          (make <window> 'widgets (reverse! *default-widgets*))
-          (set! *default-widgets* (list)))
+        (make-command-line-windows)
 
         (unless (bypass-startup-script)
           (load-startup-script))
