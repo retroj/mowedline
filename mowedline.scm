@@ -280,8 +280,9 @@
                   (y 0)
                   (width (xrectangle-width wrect))
                   (height (slot-value window 'height)))
-             (when (member (xrectinregion r x y width height)
-                           (L RECTANGLEPART RECTANGLEIN))
+             (when (and (> width 0)
+                        (member (xrectinregion r x y width height)
+                                (L RECTANGLEPART RECTANGLEIN)))
                ;;intersect r with wrect and pass result to widget-draw
                (let ((wreg (xcreateregion))
                      (out (xcreateregion)))
