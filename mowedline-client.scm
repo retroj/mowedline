@@ -20,6 +20,7 @@
 (use srfi-1
      extras
      (prefix dbus dbus:)
+     fmt
      (prefix imperative-command-line-a icla:))
 
 (include "version")
@@ -54,4 +55,11 @@
   doc: "enable or disable logging; [+-]SYM1,[+-]SYM2,..."
   (dbus:call dbus-context "log" symlist)))
 
-(icla:parse (command-line-arguments))
+(condition-case
+    (icla:parse (command-line-arguments))
+  (e (exn icla parse)
+     (fmt #t "Error: "
+          (get-condition-property e 'exn 'location) " - "
+          (get-condition-property e 'exn 'message) " "
+          (get-condition-property e 'exn 'arguments)
+          nl)))

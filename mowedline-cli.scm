@@ -1,6 +1,6 @@
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2015  John J. Foerch
+;; Copyright (C) 2011-2016  John J. Foerch
 ;;
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -17,10 +17,18 @@
 
 (import chicken scheme)
 
-(use (prefix imperative-command-line-a icla:))
+(use fmt
+     (prefix imperative-command-line-a icla:))
 
 (include "mowedline")
 (import mowedline)
 
-(when (icla:parse (command-line-arguments))
-  (mowedline))
+(condition-case
+    (when (icla:parse (command-line-arguments))
+      (mowedline))
+  (e (exn icla parse)
+     (fmt #t "Error: "
+          (get-condition-property e 'exn 'location) " - "
+          (get-condition-property e 'exn 'message) " "
+          (get-condition-property e 'exn 'arguments)
+          nl)))
