@@ -14,4 +14,4 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(define version "1.0.1")
+(define version "2.0.0")
