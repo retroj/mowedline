@@ -99,24 +99,24 @@
       last)))
 
 (define-class <window> ()
-  ((id initform: (window-get-next-id))
-   (xcontext initform: (current-xcontext))
-   (position initform: (window-position))
-   (height initform: #f)
-   (width initform: #f)
-   (baseline initform: #f)
-   (margin-top initform: 0)
-   (margin-right initform: 0)
-   (margin-bottom initform: 0)
-   (margin-left initform: 0)
-   (background initform: (window-background))
-   (widgets initform: (list))
-   (fonts initform: (list))))
+  ((id: initform: (window-get-next-id))
+   (xcontext: initform: (current-xcontext))
+   (position: initform: (window-position))
+   (height: initform: #f)
+   (width: initform: #f)
+   (baseline: initform: #f)
+   (margin-top: initform: 0)
+   (margin-right: initform: 0)
+   (margin-bottom: initform: 0)
+   (margin-left: initform: 0)
+   (background: initform: (window-background))
+   (widgets: initform: (list))
+   (fonts: initform: (list))))
 
 (define (window . args)
   (receive (props widgets)
       (split-properties args)
-    (apply make <window> 'widgets widgets props)))
+    (apply make <window> widgets: widgets props)))
 
 (define (window-create-xwindow xcontext x y width height background)
   (xu:with-xcontext xcontext (display screen window)
@@ -148,35 +148,35 @@
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
-  (xu:with-xcontext (slot-value window 'xcontext)
+  (xu:with-xcontext (slot-value window xcontext:)
       (xcontext display screen root)
     (for-each (lambda (widget) (widget-set-window! widget window))
-              (slot-value window 'widgets))
+              (slot-value window widgets:))
     (let* ((shei (xdisplayheight display screen))
-           (position (slot-value window 'position))
-           (width (or (slot-value window 'width)
+           (position (slot-value window position:))
+           (width (or (slot-value window width:)
                       (- (xdisplaywidth display screen)
-                         (slot-value window 'margin-left)
-                         (slot-value window 'margin-right))))
-           (height (or (slot-value window 'height)
+                         (slot-value window margin-left:)
+                         (slot-value window margin-right:))))
+           (height (or (slot-value window height:)
                        (fold max 1 (map widget-preferred-height
-                                        (slot-value window 'widgets)))))
+                                        (slot-value window widgets:)))))
            (window-top (case position
-                         ((bottom) (- shei (slot-value window 'margin-bottom) height))
-                         (else (slot-value window 'margin-top))))
+                         ((bottom) (- shei (slot-value window margin-bottom:) height))
+                         (else (slot-value window margin-top:))))
            (xwindow (window-create-xwindow xcontext
-                                           (slot-value window 'margin-left)
+                                           (slot-value window margin-left:)
                                            window-top width height
-                                           (slot-value window 'background))))
+                                           (slot-value window background:))))
       (assert xwindow)
       (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
-        (set! (slot-value window 'xcontext) xcontext)
-        (set! (slot-value window 'width) width)
-        (set! (slot-value window 'height) height)
-        (set! (slot-value window 'baseline)
+        (set! (slot-value window xcontext:) xcontext)
+        (set! (slot-value window width:) width)
+        (set! (slot-value window height:) height)
+        (set! (slot-value window baseline:)
               (fold max 1 (map widget-preferred-baseline
-                               (slot-value window 'widgets))))
-        (for-each widget-init (slot-value window 'widgets))
+                               (slot-value window widgets:))))
+        (for-each widget-init (slot-value window widgets:))
         (window-update-widget-dimensions! window)
 
         ;; Window Properties
@@ -203,8 +203,8 @@
         (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
-        (let ((strut-height (+ height (slot-value window 'margin-top)
-                               (slot-value window 'margin-bottom))))
+        (let ((strut-height (+ height (slot-value window margin-top:)
+                               (slot-value window margin-bottom:))))
           (xu:window-property-set xcontext "_NET_WM_STRUT"
                                   (xu:make-numbers-property
                                    (if (eq? position 'bottom)
@@ -248,12 +248,12 @@
         (push! xcontext xcontexts)))))
 
 (define (window-get-create-font window font)
-  (let ((fonts (slot-value window 'fonts)))
+  (let ((fonts (slot-value window fonts:)))
     (or (alist-ref font fonts)
-        (xu:with-xcontext (slot-value window 'xcontext)
+        (xu:with-xcontext (slot-value window xcontext:)
           (display screen)
         (let ((fontref (xft-font-open/name display screen font)))
-          (set! (slot-value window 'fonts)
+          (set! (slot-value window fonts:)
                 (cons (cons font fontref)
                       fonts))
           fontref)))))
@@ -264,22 +264,22 @@
     ;; exposing a given rectangle means drawing all widgets which
     ;; intersect that rectangle, passing the rectangle in to them so they
     ;; can use it as a mask (via a region).
-    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
       (let ((xwindow (xu:xcontext-window xcontext))
-            (widgets (slot-value window 'widgets))
+            (widgets (slot-value window widgets:))
             (r (xcreateregion)))
         (xunionrectwithregion xrectangle (xcreateregion) r)
         (llog expose "window ~A, ~A"
-              (slot-value window 'id)
+              (slot-value window id:)
               (xrectangle->string xrectangle))
         (for-each
          (lambda (widget)
            ;; does this widget intersect xrectangle?
-           (let* ((wrect (slot-value widget 'xrectangle))
+           (let* ((wrect (slot-value widget xrectangle:))
                   (x (xrectangle-x wrect))
                   (y 0)
                   (width (xrectangle-width wrect))
-                  (height (slot-value window 'height)))
+                  (height (slot-value window height:)))
              (when (and (> width 0)
                         (member (xrectinregion r x y width height)
                                 (L RECTANGLEPART RECTANGLEIN)))
@@ -294,38 +294,38 @@
         ;; clear the area to the right of the last widget.
         (unless (null? widgets)
           (let* ((lastwidget (last widgets))
-                 (wrect (slot-value lastwidget 'xrectangle))
+                 (wrect (slot-value lastwidget xrectangle:))
                  (p (+ (xrectangle-x wrect)
                        (xrectangle-width wrect)))
                  (m (+ (xrectangle-x xrectangle)
                        (xrectangle-width xrectangle))))
             (when (> m p)
               (xcleararea display xwindow
-                          p 0 (- m p) (slot-value window 'height)
+                          p 0 (- m p) (slot-value window height:)
                           0))))
         (xflush display))))
     ((window)
      (window-expose window
                     (make-xrectangle
-                     0 0 (slot-value window 'width)
-                     (slot-value window 'height))))))
+                     0 0 (slot-value window width:)
+                     (slot-value window height:))))))
 
 ;; window-update-widget-dimensions! sets x coordinates and widths of all
 ;; widgets in window.  returns #f if nothing changed, otherwise an
 ;; xrectangle of the changed area.
 ;;
 (define (window-update-widget-dimensions! window)
-  (let* ((widgets (slot-value window 'widgets))
+  (let* ((widgets (slot-value window widgets:))
          (widsum 0)
          (flexsum 0)
          (wids (map       ;; sum widths & flexes, and accumulate widths
                 (lambda (widget)
-                  (inc! flexsum (max 0 (slot-value widget 'flex)))
+                  (inc! flexsum (max 0 (slot-value widget flex:)))
                   (and-let* ((wid (widget-preferred-width widget)))
                     (inc! widsum wid)
                     wid))
                 widgets))
-         (remainder (- (slot-value window 'width) widsum))
+         (remainder (- (slot-value window width:) widsum))
          (x 0)
          (rmin #f)  ;; redraw range
          (rmax #f))
@@ -338,8 +338,8 @@
             flexwid)))
     (for-each
      (lambda (widget wid)
-       (let* ((rect (slot-value widget 'xrectangle))
-              (wid (or wid (flex-allocate (slot-value widget 'flex))))
+       (let* ((rect (slot-value widget xrectangle:))
+              (wid (or wid (flex-allocate (slot-value widget flex:))))
               (oldx (xrectangle-x rect))
               (oldwid (xrectangle-width rect)))
          (unless (and (= oldx x)
@@ -354,17 +354,17 @@
      widgets
      wids)
     (if rmin
-        (make-xrectangle rmin 0 (- rmax rmin) (slot-value window 'height))
+        (make-xrectangle rmin 0 (- rmax rmin) (slot-value window height:))
         #f)))
 
 (define (window-widget-at-position window x)
   (find
    (lambda (widget)
-     (let ((wrect (slot-value widget 'xrectangle)))
+     (let ((wrect (slot-value widget xrectangle:)))
        (and (>= x (xrectangle-x wrect))
             (< x (+ (xrectangle-x wrect)
                     (xrectangle-width wrect))))))
-   (slot-value window 'widgets)))
+   (slot-value window widgets:)))
 
 (define (window-handle-event/clientmessage xcontext event)
   (xu:with-xcontext xcontext (display)
@@ -384,7 +384,7 @@
 
 (define (window-handle-event/buttonpress xcontext event)
   (let ((window (xu:xcontext-data xcontext)))
-  (parameterize ((current-xcontext (slot-value window 'xcontext)))
+  (parameterize ((current-xcontext (slot-value window xcontext:)))
     (and-let* ((widget (window-widget-at-position
                         window (xbuttonpressedevent-x event)))
                (button (widget-button-at-position
@@ -408,40 +408,40 @@
 (define widget-flex (make-parameter 0))
 
 (define-class <widget> ()
-  ((name initform: #f)
-   (flex initform: (widget-flex))
-   (window)
-   (xrectangle initform: (make-xrectangle 0 0 0 0))
-   (background-color initform: (widget-background-color))
-   (buttons initform: (list))))
+  ((name: initform: #f)
+   (flex: initform: (widget-flex))
+   (window:)
+   (xrectangle: initform: (make-xrectangle 0 0 0 0))
+   (background-color: initform: (widget-background-color))
+   (buttons: initform: (list))))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
-  (and-let* ((name (slot-value widget 'name)))
+  (and-let* ((name (slot-value widget name:)))
     (when (hash-table-exists? *widgets* name)
       (error "duplicate widget name"))
     (hash-table-set! *widgets* name widget)))
 
 (define-method (widget-set-window! (widget <widget>) (window <window>))
-  (set! (slot-value widget 'window) window))
+  (set! (slot-value widget window:) window))
 
 (define-method (widget-init (widget <widget>))
-  (let ((window (slot-value widget 'window)))
-    (set-xrectangle-height! (slot-value widget 'xrectangle)
-                            (slot-value window 'height))))
+  (let ((window (slot-value widget window:)))
+    (set-xrectangle-height! (slot-value widget xrectangle:)
+                            (slot-value window height:))))
 
 (define-method (widget-preferred-baseline (widget <widget>)) 0)
 (define-method (widget-preferred-height (widget <widget>)) 1)
 (define-method (widget-preferred-width (widget <widget>))
-  (if (> (slot-value widget 'flex) 0)
+  (if (> (slot-value widget flex:) 0)
       #f
       1))
 
 (define-method (widget-draw (widget <widget>) region)
-  (let ((window (slot-value widget 'window)))
-    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+  (let ((window (slot-value widget window:)))
+    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
       (let* ((xwindow (xu:xcontext-window xcontext))
-             (wrect (slot-value widget 'xrectangle))
+             (wrect (slot-value widget xrectangle:))
              (x (xrectangle-x wrect))
              (attr (make-xwindowattributes))
              (_ (xgetwindowattributes display xwindow attr))
@@ -451,7 +451,7 @@
         (define (make-color c)
           (apply make-xftcolor display visual colormap
                  (ensure-list c)))
-        (let ((background-color (slot-value widget 'background-color)))
+        (let ((background-color (slot-value widget background-color:)))
           (xftdraw-set-clip! draw region)
           (if background-color
               (xft-draw-rect draw (make-color background-color) x 0
@@ -469,21 +469,21 @@
        (and (>= x (xrectangle-x rect))
             (< x (+ (xrectangle-x rect)
                     (xrectangle-width rect))))))
-   (slot-value widget 'buttons)))
+   (slot-value widget buttons:)))
 
 
 ;; Spacer
 ;;
 (define-class <spacer> (<widget>)
-  ((width initform: #f)))
+  ((width: initform: #f)))
 
 (define (widget:spacer . args)
   (apply make <spacer> args))
 
 (define-method (widget-preferred-width (widget <spacer>))
-  (if (> (slot-value widget 'flex) 0)
+  (if (> (slot-value widget flex:) 0)
       #f
-      (or (slot-value widget 'width) 1)))
+      (or (slot-value widget width:) 1)))
 
 
 ;; Text Widget
@@ -493,10 +493,10 @@
 (define text-widget-format (make-parameter identity))
 
 (define-class <text-widget> (<widget>)
-  ((text initform: "")
-   (font initform: (text-widget-font))
-   (color initform: (text-widget-color))
-   (format initform: (text-widget-format))))
+  ((text: initform: "")
+   (font: initform: (text-widget-font))
+   (color: initform: (text-widget-color))
+   (format: initform: (text-widget-format))))
 
 (define (widget:text . args)
   (apply make <text-widget> args))
@@ -504,16 +504,16 @@
 (define-method (initialize-instance (widget <text-widget>))
   (call-next-method)
   ;; apply formatting to default text
-  (widget-update widget (list (slot-value widget 'text))))
+  (widget-update widget (list (slot-value widget text:))))
 
 (define-method (widget-draw (widget <text-widget>) region)
-  (let ((window (slot-value widget 'window)))
-    (xu:with-xcontext (slot-value window 'xcontext) (xcontext display)
+  (let ((window (slot-value widget window:)))
+    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
       (let* ((xwindow (xu:xcontext-window xcontext))
-             (wrect (slot-value widget 'xrectangle))
-             (font (window-get-create-font window (slot-value widget 'font)))
+             (wrect (slot-value widget xrectangle:))
+             (font (window-get-create-font window (slot-value widget font:)))
              (x (xrectangle-x wrect))
-             (baseline (slot-value window 'baseline))
+             (baseline (slot-value window baseline:))
              (attr (make-xwindowattributes))
              (_ (xgetwindowattributes display xwindow attr))
              (visual (xwindowattributes-visual attr))
@@ -522,9 +522,9 @@
         (define (make-color c)
           (apply make-xftcolor display visual colormap
                  (ensure-list c)))
-        (set! (slot-value widget 'buttons) (list))
-        (let ((color (make-color (slot-value widget 'color)))
-              (background-color (slot-value widget 'background-color)))
+        (set! (slot-value widget buttons:) (list))
+        (let ((color (make-color (slot-value widget color:)))
+              (background-color (slot-value widget background-color:)))
           (xftdraw-set-clip! draw region)
           (if background-color
               (xft-draw-rect draw (make-color background-color) x 0
@@ -534,7 +534,7 @@
                           (xrectangle-width wrect)
                           (xrectangle-height wrect)
                           0))
-          (let walk ((term (slot-value widget 'text))
+          (let walk ((term (slot-value widget text:))
                      (fonts (list font))
                      (colors (list color)))
             (cond
@@ -551,7 +551,7 @@
                                                        (- x buttonx1)
                                                        (xrectangle-height wrect))
                                       handler)
-                         (slot-value widget 'buttons))))
+                         (slot-value widget buttons:))))
                ((eq? 'color (first term))
                 (walk (cddr term) fonts (cons (make-color (second term)) colors)))
                ((eq? 'font (first term))
@@ -562,29 +562,29 @@
 
 (define-method (widget-preferred-baseline (widget <text-widget>))
   (xftfont-ascent (window-get-create-font
-                   (slot-value widget 'window)
-                   (slot-value widget 'font))))
+                   (slot-value widget window:)
+                   (slot-value widget font:))))
 
 (define-method (widget-preferred-height (widget <text-widget>))
   ;; i find even common fonts extend a pixel lower than their
   ;; declared descent.  tsk tsk.
   (let ((font (window-get-create-font
-               (slot-value widget 'window)
-               (slot-value widget 'font))))
+               (slot-value widget window:)
+               (slot-value widget font:))))
     (+ (xftfont-ascent font) (xftfont-descent font) 2)))
 
 (define-method (widget-preferred-width (widget <text-widget>))
-  (let ((window (slot-value widget 'window)))
-    (xu:with-xcontext (slot-value window 'xcontext) (display)
+  (let ((window (slot-value widget window:)))
+    (xu:with-xcontext (slot-value window xcontext:) (display)
       (define (x-extent str font)
         (xglyphinfo-xoff
          (xft-text-extents display
                            (window-get-create-font window font)
                            str)))
-      (if (> (slot-value widget 'flex) 0)
+      (if (> (slot-value widget flex:) 0)
           #f
-          (let walk ((term (slot-value widget 'text))
-                     (font (slot-value widget 'font)))
+          (let walk ((term (slot-value widget text:))
+                     (font (slot-value widget font:)))
             (cond
              ((null? term) 0)
              ((string? term) (x-extent term font))
@@ -600,8 +600,8 @@
              (else 0)))))))
 
 (define-method (widget-update (widget <text-widget>) params)
-  (set! (slot-value widget 'text)
-        ((slot-value widget 'format) (first params))))
+  (set! (slot-value widget text:)
+        ((slot-value widget format:) (first params))))
 
 
 ;; Clock
@@ -615,12 +615,12 @@
          *internal-events*
          (lambda ()
            (update widget
-                   (time->string time (slot-value widget 'time-format)))))
+                   (time->string time (slot-value widget time-format:)))))
         (thread-sleep! (- 60 s)))
       (loop))))
 
 (define-class <clock> (<text-widget>)
-  ((time-format initform: "%a %b %e %H:%M %Z %Y")))
+  ((time-format: initform: "%a %b %e %H:%M %Z %Y")))
 
 (define (widget:clock . args)
   (apply make <clock> args))
@@ -633,8 +633,8 @@
 ;; Flags
 ;;
 (define-class <flags> (<text-widget>)
-  ((flags initform: '())
-   (curflags initform: '())))
+  ((flags: initform: '())
+   (curflags: initform: '())))
 
 (define (widget:flags . args)
   (apply make <flags> args))
@@ -648,17 +648,17 @@
          (tokens (string-tokenize changes char-set:graphic tokenize-start)))
     (case op
       ((add)
-       (set! (slot-value widget 'curflags)
-             (lset-union equal? (slot-value widget 'curflags) tokens)))
+       (set! (slot-value widget curflags:)
+             (lset-union equal? (slot-value widget curflags:) tokens)))
       ((remove)
-       (set! (slot-value widget 'curflags)
-             (lset-difference equal? (slot-value widget 'curflags) tokens)))
+       (set! (slot-value widget curflags:)
+             (lset-difference equal? (slot-value widget curflags:) tokens)))
       ((replace)
-       (set! (slot-value widget 'curflags) tokens)))
-    (let ((curflags (slot-value widget 'curflags)))
+       (set! (slot-value widget curflags:) tokens)))
+    (let ((curflags (slot-value widget curflags:)))
       (set!
-       (slot-value widget 'text)
-       ((slot-value widget 'format)
+       (slot-value widget text:)
+       ((slot-value widget format:)
         (fold (lambda (flagdef result)
                 (let ((flag (first flagdef))
                       (r (rest flagdef)))
@@ -666,7 +666,7 @@
                       (cons r result)
                       result)))
               '()
-              (reverse (slot-value widget 'flags))))))))
+              (reverse (slot-value widget flags:))))))))
 
 
 ;; Map
@@ -675,9 +675,9 @@
   (string-append (->string k) "=" (->string v)))
 
 (define-class <map> (<text-widget>)
-  ((data initform: (make-hash-table))
-   (format-pair initform: map-format-pair)
-   (separator initform: ",")))
+  ((data: initform: (make-hash-table))
+   (format-pair: initform: map-format-pair)
+   (separator: initform: ",")))
 
 (define (widget:map . args)
   (apply make <map> args))
@@ -687,20 +687,20 @@
       (with-input-from-string (first params)
         (lambda () (values (read) (read))))
     (unless (or (eof-object? fst) (eof-object? snd))
-      (hash-table-set! (slot-value widget 'data)
+      (hash-table-set! (slot-value widget data:)
                        fst snd))
     (set!
-     (slot-value widget 'text)
-     ((slot-value widget 'format)
+     (slot-value widget text:)
+     ((slot-value widget format:)
       (hash-table-fold
-       (slot-value widget 'data)
+       (slot-value widget data:)
        (lambda (k v a)
-         (let ((part ((slot-value widget 'format-pair) k v)))
+         (let ((part ((slot-value widget format-pair:) k v)))
            (if part
                (string-append part
                               (if (string-null? a)
                                   ""
-                                  (slot-value widget 'separator))
+                                  (slot-value widget separator:))
                               a)
                a)))
        "")))))
@@ -716,8 +716,8 @@
 
 (define-method (widget-init (widget <active-window-title>))
   (call-next-method)
-  (let* ((window (slot-value widget 'window))
-         (xcontext (slot-value window 'xcontext)))
+  (let* ((window (slot-value widget window:))
+         (xcontext (slot-value window xcontext:)))
     (xu:with-xcontext xcontext (display screen root)
       (let ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
             (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
@@ -747,9 +747,9 @@
                      (hash-table-ref/default *widgets* widget-or-name #f)
                      widget-or-name)))
       (widget-update widget params)
-      (let ((window (slot-value widget 'window)))
+      (let ((window (slot-value widget window:)))
         (window-expose window (or (window-update-widget-dimensions! window)
-                                  (slot-value widget 'xrectangle))))
+                                  (slot-value widget xrectangle:))))
       #t)))
 
 (define (log-watch symlist . params)
@@ -771,22 +771,22 @@
 
 (define (make-command-line-windows)
   (for-each
-   (lambda (widgets) (make <window> 'widgets widgets))
+   (lambda (widgets) (make <window> widgets: widgets))
    *command-line-windows*)
   (set! *command-line-windows* (list))
   (unless (null? *default-widgets*)
-    (make <window> 'widgets (reverse! *default-widgets*))
+    (make <window> widgets: (reverse! *default-widgets*))
     (set! *default-widgets* (list))))
 
 (define (maybe-make-default-window)
   (unless (find (lambda (xc) (instance-of? (xu:xcontext-data xc) <window>))
                 xcontexts)
     (make <window>
-      'widgets
+      widgets:
       (L (make <text-widget>
-           'name "default"
-           'flex 1
-           'text "mowedline")))))
+           name: "default"
+           flex: 1
+           text: "mowedline")))))
 
 (define bypass-startup-script (make-parameter #f))
 
@@ -870,7 +870,7 @@
   (startup-script path))
  ((text-widget name)
   (push! (make <text-widget>
-           'name name)
+           name: name)
          *default-widgets*))
  ((clock)
   (push! (make <clock>)
