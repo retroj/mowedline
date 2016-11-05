@@ -769,6 +769,27 @@
   (gochan-send *internal-events* quit-mowedline)
   #t)
 
+(define (dbus-introspect)
+  "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"
+             \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">
+<node>
+  <interface name=\"org.freedesktop.DBus.Introspectable\">
+    <method name=\"Introspect\">
+      <arg name=\"xml_data\" type=\"s\" direction=\"out\"/>
+    </method>
+  </interface>
+  <interface name=\"mowedline.interface\">
+    <method name=\"log\">
+      <arg name=\"symlist\" type=\"s\" direction=\"in\"/>
+    </method>
+    <method name=\"quit\"></method>
+    <method name=\"update\">
+      <arg name=\"widget\" type=\"s\" direction=\"in\"/>
+      <arg name=\"value\" type=\"s\" direction=\"in\"/>
+    </method>
+  </interface>
+</node>")
+
 (define (make-command-line-windows)
   (for-each
    (lambda (widgets) (make <window> widgets: widgets))
@@ -820,11 +841,15 @@
 
         (let ((dbus-context
                (dbus:make-context service: 'mowedline.server
-                                  interface: 'mowedline.interface)))
+                                  interface: 'mowedline.interface))
+              (introspect-context
+               (dbus:make-context service: 'mowedline.server
+                                  interface: 'org.freedesktop.DBus.Introspectable)))
           (dbus:enable-polling-thread! enable: #f)
           (dbus:register-method dbus-context "update" update)
           (dbus:register-method dbus-context "quit" dbus-client-quit)
-          (dbus:register-method dbus-context "log" log-watch))
+          (dbus:register-method dbus-context "log" log-watch)
+          (dbus:register-method introspect-context "Introspect" dbus-introspect))
 
         (define (x-eventloop)
           (unless (> (xpending display) 0)
