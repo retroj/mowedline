@@ -786,6 +786,7 @@
     <method name=\"update\">
       <arg name=\"widget\" type=\"s\" direction=\"in\"/>
       <arg name=\"value\" type=\"s\" direction=\"in\"/>
+      <arg name=\"success\" type=\"b\" direction=\"out\"/>
     </method>
   </interface>
 </node>")
