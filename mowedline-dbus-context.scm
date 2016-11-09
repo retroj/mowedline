@@ -20,7 +20,7 @@
 (define mowedline-dbus-service 'net.retroj.mowedline)
 (define mowedline-dbus-interface 'net.retroj.mowedline)
 
-(define (mowedline-dbus-context)
+(define mowedline-dbus-context
   (dbus:make-context service: mowedline-dbus-service
                      interface: mowedline-dbus-interface
                      path: mowedline-dbus-path))

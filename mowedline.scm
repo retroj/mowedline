@@ -48,7 +48,7 @@
 (import llog)
 
 (include "version")
-(include "mowedline-dbus")
+(include "mowedline-dbus-context")
 
 (include "utils")
 
@@ -862,16 +862,15 @@
           (load-startup-script))
         (maybe-make-default-window)
 
-        (let ((dbus-context (mowedline-dbus-context)))
-          (dbus:enable-polling-thread! enable: #f)
-          (dbus:register-method dbus-context "update" update)
-          (dbus:register-method dbus-context "quit" dbus-client-quit)
-          (dbus:register-method dbus-context "log" log-watch)
-          (register-dbus-introspection
-           segments: `(("" ,(dbus-introspect-part "net"))
-                       ("net" ,(dbus-introspect-part "retroj"))
-                       ("retroj" ,(dbus-introspect-part "mowedline"))
-                       ("mowedline" ,dbus-introspect))))
+        (dbus:enable-polling-thread! enable: #f)
+        (dbus:register-method mowedline-dbus-context "update" update)
+        (dbus:register-method mowedline-dbus-context "quit" dbus-client-quit)
+        (dbus:register-method mowedline-dbus-context "log" log-watch)
+        (register-dbus-introspection
+         segments: `(("" ,(dbus-introspect-part "net"))
+                     ("net" ,(dbus-introspect-part "retroj"))
+                     ("retroj" ,(dbus-introspect-part "mowedline"))
+                     ("mowedline" ,dbus-introspect)))
 
         (define (x-eventloop)
           (unless (> (xpending display) 0)
