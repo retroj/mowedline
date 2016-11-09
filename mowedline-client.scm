@@ -26,8 +26,6 @@
 (include "version")
 (include "mowedline-dbus")
 
-(import mowedline-dbus)
-
 (define dbus-context (mowedline-dbus-context))
 
 (icla:help-heading

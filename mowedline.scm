@@ -16,7 +16,6 @@
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
 (include "llog")
-(include "mowedline-dbus")
 
 (module mowedline
     *
@@ -47,9 +46,9 @@
      xtypes)
 
 (import llog)
-(import mowedline-dbus)
 
 (include "version")
+(include "mowedline-dbus")
 
 (include "utils")
 

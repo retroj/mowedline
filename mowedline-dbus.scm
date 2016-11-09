@@ -14,11 +14,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(module mowedline-dbus
-    *
-
-(import chicken scheme)
-
 (use (prefix dbus dbus:))
 
 (define mowedline-dbus-path "/net/retroj/mowedline")
@@ -28,4 +23,4 @@
 (define (mowedline-dbus-context)
   (dbus:make-context service: mowedline-dbus-service
                      interface: mowedline-dbus-interface
-                     path: mowedline-dbus-path)))
+                     path: mowedline-dbus-path))
