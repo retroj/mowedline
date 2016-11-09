@@ -60,8 +60,8 @@
   "Perform a mowedline update for the given widget and value
 directly via dbus."
   (dbus-call-method
-   :session "mowedline.server" "/"
-   "mowedline.interface" "update"
+   :session "net.retroj.mowedline" "/net/retroj/mowedline"
+   "net.retroj.mowedline" "update"
    (if (symbolp widget)
        (symbol-name widget)
      widget)

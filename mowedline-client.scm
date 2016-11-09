@@ -24,10 +24,11 @@
      (prefix imperative-command-line-a icla:))
 
 (include "version")
+(include "mowedline-dbus")
 
-(define dbus-context
-  (dbus:make-context service: 'mowedline.server
-                     interface: 'mowedline.interface))
+(import mowedline-dbus)
+
+(define dbus-context (mowedline-dbus-context))
 
 (icla:help-heading
  (sprintf "mowedline-client version ~A, by John J. Foerch" version))

@@ -16,6 +16,7 @@
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
 (include "llog")
+(include "mowedline-dbus")
 
 (module mowedline
     *
@@ -46,6 +47,7 @@
      xtypes)
 
 (import llog)
+(import mowedline-dbus)
 
 (include "version")
 
@@ -759,7 +761,7 @@
        ((#\-) (llog-unwatch (string->symbol (string-drop x 1))))
        ((#\+) (llog-watch (string->symbol (string-drop x 1))))
        (else (llog-watch (string->symbol x)))))
-   (string-split symlist ", ")) 
+   (string-split symlist ", "))
   #t)
 
 (define (dbus-client-quit)
@@ -769,16 +771,26 @@
   (gochan-send *internal-events* quit-mowedline)
   #t)
 
-(define (dbus-introspect)
-  "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"
+(define (dbus-introspect-part part)
+  (lambda ()
+    (string-append
+     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"
              \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">
 <node>
+  <node name=\"" part "\" />
+</node>")))
+
+(define (dbus-introspect)
+  (string-append
+   "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"
+             \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">
+<node name=\"" mowedline-dbus-path "\">
   <interface name=\"org.freedesktop.DBus.Introspectable\">
     <method name=\"Introspect\">
       <arg name=\"xml_data\" type=\"s\" direction=\"out\"/>
     </method>
   </interface>
-  <interface name=\"mowedline.interface\">
+  <interface name=\"" (symbol->string mowedline-dbus-interface) "\">
     <method name=\"log\">
       <arg name=\"symlist\" type=\"s\" direction=\"in\"/>
     </method>
@@ -789,7 +801,7 @@
       <arg name=\"success\" type=\"b\" direction=\"out\"/>
     </method>
   </interface>
-</node>")
+</node>"))
 
 (define (make-command-line-windows)
   (for-each
@@ -825,6 +837,17 @@
       (eval '(import mowedline))
       (load path))))
 
+(define (register-dbus-introspection #!key (path "/") segments)
+  (if (not (null? segments))
+      (let* ((next-path
+              (string-append path (if (string=? path "/") "" "/") (caar segments)))
+             (context
+              (dbus:make-context service: mowedline-dbus-service
+                                 interface: 'org.freedesktop.DBus.Introspectable
+                                 path: next-path)))
+        (dbus:register-method context "Introspect" (cadar segments))
+        (register-dbus-introspection path: next-path segments: (cdr segments)))))
+
 (define (mowedline)
   (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
       (xcontext display)
@@ -840,17 +863,16 @@
           (load-startup-script))
         (maybe-make-default-window)
 
-        (let ((dbus-context
-               (dbus:make-context service: 'mowedline.server
-                                  interface: 'mowedline.interface))
-              (introspect-context
-               (dbus:make-context service: 'mowedline.server
-                                  interface: 'org.freedesktop.DBus.Introspectable)))
+        (let ((dbus-context (mowedline-dbus-context)))
           (dbus:enable-polling-thread! enable: #f)
           (dbus:register-method dbus-context "update" update)
           (dbus:register-method dbus-context "quit" dbus-client-quit)
           (dbus:register-method dbus-context "log" log-watch)
-          (dbus:register-method introspect-context "Introspect" dbus-introspect))
+          (register-dbus-introspection
+           segments: `(("" ,(dbus-introspect-part "net"))
+                       ("net" ,(dbus-introspect-part "retroj"))
+                       ("retroj" ,(dbus-introspect-part "mowedline"))
+                       ("mowedline" ,dbus-introspect))))
 
         (define (x-eventloop)
           (unless (> (xpending display) 0)
