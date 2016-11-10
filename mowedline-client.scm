@@ -24,10 +24,7 @@
      (prefix imperative-command-line-a icla:))
 
 (include "version")
-
-(define dbus-context
-  (dbus:make-context service: 'mowedline.server
-                     interface: 'mowedline.interface))
+(include "mowedline-dbus-context")
 
 (icla:help-heading
  (sprintf "mowedline-client version ~A, by John J. Foerch" version))
@@ -35,25 +32,25 @@
 (icla:define-command-group client-options
  ((quit)
   doc: "quit the program"
-  (dbus:call dbus-context "quit"))
+  (dbus:call mowedline-dbus-context "quit"))
 
  ((read widget)
   doc: "updates widget by reading lines from stdin"
   (let loop ()
     (let ((line (read-line (current-input-port))))
       (unless (eof-object? line)
-        (when (equal? '(#f) (dbus:call dbus-context "update" widget line))
+        (when (equal? '(#f) (dbus:call mowedline-dbus-context "update" widget line))
           (printf "widget not found, ~S~%" widget))
         (loop)))))
 
  ((update widget value)
   doc: "updates widget with value"
-  (when (equal? '(#f) (dbus:call dbus-context "update" widget value))
+  (when (equal? '(#f) (dbus:call mowedline-dbus-context "update" widget value))
     (printf "widget not found, ~S~%" widget)))
 
  ((log symlist)
   doc: "enable or disable logging; [+-]SYM1,[+-]SYM2,..."
-  (dbus:call dbus-context "log" symlist)))
+  (dbus:call mowedline-dbus-context "log" symlist)))
 
 (condition-case
     (icla:parse (command-line-arguments))
