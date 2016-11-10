@@ -31,7 +31,7 @@
      gochan
      coops
      data-structures
-     (prefix dbus dbus:)
+     (prefix dbus2 dbus:)
      extras
      filepath
      (prefix imperative-command-line-a icla:)

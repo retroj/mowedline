@@ -3,7 +3,7 @@
 ((license "GPL3")
  (category misc)
  (needs coops
-        (dbus "0.92")
+        dbus2
         filepath
         fmt
         gochan

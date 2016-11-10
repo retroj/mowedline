@@ -14,7 +14,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with mowedline.  If not, see <http://www.gnu.org/licenses/>.
 
-(use (prefix dbus dbus:))
+(use (prefix dbus2 dbus:))
 
 (define mowedline-dbus-path "/net/retroj/mowedline")
 (define mowedline-dbus-service 'net.retroj.mowedline)
