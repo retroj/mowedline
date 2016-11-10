@@ -759,7 +759,7 @@
        ((#\-) (llog-unwatch (string->symbol (string-drop x 1))))
        ((#\+) (llog-watch (string->symbol (string-drop x 1))))
        (else (llog-watch (string->symbol x)))))
-   (string-split symlist ", ")) 
+   (string-split symlist ", "))
   #t)
 
 (define (dbus-client-quit)
