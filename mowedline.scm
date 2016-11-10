@@ -836,16 +836,26 @@
       (eval '(import mowedline))
       (load path))))
 
-(define (register-dbus-introspection #!key (path "/") segments)
-  (if (not (null? segments))
-      (let* ((next-path
-              (string-append path (if (string=? path "/") "" "/") (caar segments)))
+(define (register-dbus-introspection)
+  (let loop ((path "/")
+             (segments (string-split mowedline-dbus-path "/")))
+    (cond
+     ((null? segments)
+      (let ((context
+             (dbus:make-context service: mowedline-dbus-service
+                                interface: 'org.freedesktop.DBus.Introspectable
+                                path: mowedline-dbus-path)))
+        (dbus:register-method context "Introspect" dbus-introspect)))
+     (else
+      (let* ((segment (car segments))
+             (next-path
+              (string-append path (if (string=? path "/") "" "/") segment))
              (context
               (dbus:make-context service: mowedline-dbus-service
                                  interface: 'org.freedesktop.DBus.Introspectable
-                                 path: next-path)))
-        (dbus:register-method context "Introspect" (cadar segments))
-        (register-dbus-introspection path: next-path segments: (cdr segments)))))
+                                 path: path)))
+        (dbus:register-method context "Introspect" (dbus-introspect-part segment))
+        (loop next-path (cdr segments)))))))
 
 (define (mowedline)
   (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
@@ -866,11 +876,7 @@
         (dbus:register-method mowedline-dbus-context "update" update)
         (dbus:register-method mowedline-dbus-context "quit" dbus-client-quit)
         (dbus:register-method mowedline-dbus-context "log" log-watch)
-        (register-dbus-introspection
-         segments: `(("" ,(dbus-introspect-part "net"))
-                     ("net" ,(dbus-introspect-part "retroj"))
-                     ("retroj" ,(dbus-introspect-part "mowedline"))
-                     ("mowedline" ,dbus-introspect)))
+        (register-dbus-introspection)
 
         (define (x-eventloop)
           (unless (> (xpending display) 0)
