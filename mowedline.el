@@ -1,7 +1,7 @@
 ;;; mowedline.el --- elisp utilities for using mowedline
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2015  John J. Foerch
+;; Copyright (C) 2011-2016  John J. Foerch
 
 ;; Author: John Foerch <jjfoerch@earthlink.net>
 ;; Version: 0.5
