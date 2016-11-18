@@ -75,6 +75,10 @@ dispatching to the update function given by
 `mowedline-update-function`."
   (funcall mowedline-update-function widget value))
 
+(defun mowedline-clear (widget)
+  "Clear the given widget."
+  (mowedline-update widget ""))
+
 (defun mowedline-string-break-by-property (str prop)
   (let ((len (length str))
         (p 0)
