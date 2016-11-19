@@ -394,6 +394,24 @@
 
 
 ;;;
+;;; Widget Source
+;;;
+
+(define (source:poll thunk interval)
+  (define (poll-thread widget)
+    (lambda ()
+      (let loop ()
+        (gochan-send
+         *internal-events*
+         (lambda () (update widget (thunk))))
+        (thread-sleep! interval)
+        (loop))))
+  (lambda (widget)
+    (thread-start!
+     (make-thread (poll-thread widget)))))
+
+
+;;;
 ;;; Widgets
 ;;;
 
@@ -414,7 +432,8 @@
    (window:)
    (xrectangle: initform: (make-xrectangle 0 0 0 0))
    (background-color: initform: (widget-background-color))
-   (buttons: initform: (list))))
+   (buttons: initform: (list))
+   (source: initform: #f)))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -429,7 +448,9 @@
 (define-method (widget-init (widget <widget>))
   (let ((window (slot-value widget window:)))
     (set-xrectangle-height! (slot-value widget xrectangle:)
-                            (slot-value window height:))))
+                            (slot-value window height:))
+    (when (slot-value widget source:)
+      ((slot-value widget source:) widget))))
 
 (define-method (widget-preferred-baseline (widget <widget>)) 0)
 (define-method (widget-preferred-height (widget <widget>)) 1)
