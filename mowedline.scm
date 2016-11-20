@@ -414,7 +414,8 @@
    (window:)
    (xrectangle: initform: (make-xrectangle 0 0 0 0))
    (background-color: initform: (widget-background-color))
-   (buttons: initform: (list))))
+   (buttons: initform: (list))
+   (init: initform: #f)))
 
 (define-method (initialize-instance (widget <widget>))
   (call-next-method)
@@ -427,9 +428,12 @@
   (set! (slot-value widget window:) window))
 
 (define-method (widget-init (widget <widget>))
-  (let ((window (slot-value widget window:)))
+  (let ((window (slot-value widget window:))
+        (init (slot-value widget init:)))
     (set-xrectangle-height! (slot-value widget xrectangle:)
-                            (slot-value window height:))))
+                            (slot-value window height:))
+    (when init
+      (init widget))))
 
 (define-method (widget-preferred-baseline (widget <widget>)) 0)
 (define-method (widget-preferred-height (widget <widget>)) 1)
