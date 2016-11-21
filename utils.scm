@@ -89,6 +89,21 @@
     (cons " " text))
    (else text)))
 
+;; widget-update-at-interval calls widget-update on the given widget every
+;; interval seconds, with the value returned by (thunk).
+;;
+(define (widget-update-at-interval widget interval thunk)
+  (define (poll-thread widget)
+    (lambda ()
+      (let loop ()
+        (gochan-send
+         *internal-events*
+         (lambda () (update widget (thunk))))
+        (thread-sleep! interval)
+        (loop))))
+  (thread-start!
+   (make-thread (poll-thread widget))))
+
 
 ;;;
 ;;; Environment
