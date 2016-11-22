@@ -19,7 +19,7 @@
 
 (use srfi-1
      extras
-     (prefix dbus2 dbus:)
+     (prefix dbus dbus:)
      fmt
      (prefix imperative-command-line-a icla:))
 
