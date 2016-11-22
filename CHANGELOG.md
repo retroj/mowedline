@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+### Added
+
+- <widget> init: field
+- widget-update-at-interval
+- mowedline.el: mowedline-clear
+
+### Changed
+
+- Switch back to dbus egg (work from dbus2 has been merged).
 
 
 ## [3.0.0] - 2016-11-14
@@ -20,7 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - DBus service, interface, and path are now net.retroj.mowedline,
   net.retroj.mowedline, and /net/retroj/mowedline.
 - Use dbus2 egg instead of dbus egg.
-  
+
 
 ## [2.0.0] - 2016-06-19
 ### Changed
