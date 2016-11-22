@@ -59,13 +59,15 @@
 (defun mowedline-update/dbus (widget value)
   "Perform a mowedline update for the given widget and value
 directly via dbus."
-  (dbus-call-method
-   :session "net.retroj.mowedline" "/net/retroj/mowedline"
-   "net.retroj.mowedline" "update"
-   (if (symbolp widget)
-       (symbol-name widget)
-     widget)
-   value))
+  (ignore-errors
+    (dbus-call-method
+     :session "net.retroj.mowedline" "/net/retroj/mowedline"
+     "net.retroj.mowedline" "update"
+     :timeout 0
+     (if (symbolp widget)
+         (symbol-name widget)
+       widget)
+     value)))
 
 (defvar mowedline-update-function 'mowedline-update/client)
 
