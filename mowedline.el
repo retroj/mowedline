@@ -4,8 +4,8 @@
 ;; Copyright (C) 2011-2016  John J. Foerch
 
 ;; Author: John Foerch <jjfoerch@earthlink.net>
-;; Version: 0.5
-;; Date: 2016-11-18
+;; Version: 0.6
+;; Date: 2016-11-21
 
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
