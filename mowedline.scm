@@ -890,8 +890,9 @@
           (x-eventloop))
 
         (define (dbus-eventloop)
-          (dbus:poll-for-message)
-          (thread-sleep! 0.01)
+          (if (dbus:poll-for-message)
+              (thread-yield!)
+              (thread-sleep! 0.01))
           (dbus-eventloop))
 
         (define (internal-events-eventloop)
