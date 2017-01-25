@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+
+## [3.1.0] - 2017-01-24
 ### Added
 
 - <widget> init: field
