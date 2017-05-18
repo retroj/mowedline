@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [3.1.1] - 2017-05-17
+### Fixed
+
+- corrected value of `_NET_WM_WINDOW_TYPE` property
+
+
 ## [3.1.0] - 2017-01-24
 ### Added
 
