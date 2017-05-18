@@ -192,7 +192,7 @@
         (xu:window-property-set xcontext "_NET_WM_PID"
                                 (xu:make-number-property (current-process-id)))
         (xu:window-property-set xcontext "_NET_WM_WINDOW_TYPE"
-                                (xu:make-atom-property xcontext "_NET_WM_TYPE_DOCK"))
+                                (xu:make-atom-property xcontext "_NET_WM_WINDOW_TYPE_DOCK"))
         (xu:window-property-set xcontext "_NET_WM_DESKTOP"
                                 (xu:make-number-property #xffffffff))
         (xu:window-property-set xcontext "_NET_WM_STATE"
