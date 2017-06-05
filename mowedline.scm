@@ -723,7 +723,7 @@
   (call-next-method)
   (let* ((window (slot-value widget window:))
          (xcontext (slot-value window xcontext:)))
-    (xu:with-xcontext xcontext (display screen root)
+    (xu:with-xcontext xcontext (display root)
       (let ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
             (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
         (xu:add-event-handler! root-xcontext
