@@ -150,24 +150,26 @@
 (define-method (initialize-instance (window <window>))
   (call-next-method)
   (xu:with-xcontext (slot-value window xcontext:)
-      (xcontext display screen root)
+      (xcontext display)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window widgets:))
-    (let* ((shei (xdisplayheight display screen))
+    (let* ((shei (xu:screen-or-xinerama-screen-height xcontext))
            (position (slot-value window position:))
            (width (or (slot-value window width:)
-                      (- (xdisplaywidth display screen)
+                      (- (xu:screen-or-xinerama-screen-width xcontext)
                          (slot-value window margin-left:)
                          (slot-value window margin-right:))))
            (height (or (slot-value window height:)
                        (fold max 1 (map widget-preferred-height
                                         (slot-value window widgets:)))))
-           (window-top (case position
-                         ((bottom) (- shei (slot-value window margin-bottom:) height))
-                         (else (slot-value window margin-top:))))
+           (window-left (+ (xu:screen-or-xinerama-screen-left xcontext)
+                           (slot-value window margin-left:)))
+           (window-top (+ (xu:screen-or-xinerama-screen-top xcontext)
+                          (case position
+                            ((bottom) (- shei (slot-value window margin-bottom:) height))
+                            (else (slot-value window margin-top:)))))
            (xwindow (window-create-xwindow xcontext
-                                           (slot-value window margin-left:)
-                                           window-top width height
+                                           window-left window-top width height
                                            (slot-value window background:))))
       (assert xwindow)
       (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
@@ -204,8 +206,11 @@
         (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
 
-        (let ((strut-height (+ height (slot-value window margin-top:)
-                               (slot-value window margin-bottom:))))
+        (let* ((strut-height (+ height (slot-value window margin-top:)
+                                (slot-value window margin-bottom:)))
+               (strut-left (xu:screen-or-xinerama-screen-left xcontext))
+               (strut-right (+ strut-left (slot-value window margin-left:)
+                               (slot-value window margin-right:))))
           (xu:window-property-set xcontext "_NET_WM_STRUT"
                                   (xu:make-numbers-property
                                    (if (eq? position 'bottom)
@@ -214,8 +219,10 @@
           (xu:window-property-set xcontext "_NET_WM_STRUT_PARTIAL"
                                   (xu:make-numbers-property
                                    (if (eq? position 'bottom)
-                                       (list 0 0 0 strut-height 0 0 0 0 0 0 0 0)
-                                       (list 0 0 strut-height 0 0 0 0 0 0 0 0 0)))))
+                                       (list 0 0 0 strut-height 0 0 0 0
+                                             0 0 strut-left strut-right)
+                                       (list 0 0 strut-height 0 0 0 0 0
+                                             strut-left strut-right 0 0)))))
 
         (xu:set-wm-protocols xcontext '(WM_DELETE_WINDOW))
 
