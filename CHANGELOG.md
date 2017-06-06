@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [3.2.0] - 2017-06-06
+### Added
+
+- xinerama support
+
+
 ## [3.1.1] - 2017-05-17
 ### Fixed
 
