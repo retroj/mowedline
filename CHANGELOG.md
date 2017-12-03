@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [3.2.1] - 2017-12-03
+### Fixed
+
+- update for changes in gochan egg
+
+
 ## [3.2.0] - 2017-06-06
 ### Added
 
