@@ -6,7 +6,7 @@
         (dbus "0.94")
         filepath
         fmt
-        gochan
+        (gochan "2.5")
         (imperative-command-line-a "0.5.0")
         matchable
         miscmacros

@@ -67,7 +67,7 @@
 
 (define *command-line-windows* (list))
 
-(define *internal-events* (gochan))
+(define *internal-events* (gochan 64))
 
 (define %quit-mowedline #f) ;; will be bound to a quit continuation
 (define (quit-mowedline . _)
@@ -903,7 +903,7 @@
           (dbus-eventloop))
 
         (define (internal-events-eventloop)
-          ((gochan-receive *internal-events*))
+          ((gochan-recv *internal-events*))
           (internal-events-eventloop))
 
         (call/cc
