@@ -731,8 +731,11 @@
   (let* ((window (slot-value widget window:))
          (xcontext (slot-value window xcontext:)))
     (xu:with-xcontext xcontext (display root)
-      (let ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
-            (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
+      (let* ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
+             (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0))
+             (attr (make-xwindowattributes))
+             (_ (xgetwindowattributes display root attr))
+             (eventmask (xwindowattributes-your_event_mask attr)))
         (xu:add-event-handler! root-xcontext
                                PROPERTYNOTIFY
                                PROPERTYCHANGEMASK
@@ -742,9 +745,7 @@
                                ;; guard
                                (lambda (event)
                                  (= net-active-window-atom (xpropertyevent-atom event))))
-        ;;XXX: we need to make a general interface so that widgets are not
-        ;;     clobbering each other's eventmasks
-        (xselectinput display root (bitwise-ior PROPERTYCHANGEMASK))
+        (xselectinput display root (bitwise-ior eventmask PROPERTYCHANGEMASK))
         (widget-update widget (list (or (xu:active-window-title root-xcontext) "")))))))
 
 
