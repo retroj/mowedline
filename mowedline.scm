@@ -740,13 +740,16 @@
                                PROPERTYNOTIFY
                                PROPERTYCHANGEMASK
                                (lambda (xcontext event)
-                                 (let ((title (xu:active-window-title root-xcontext)))
+                                 (let* ((w (xu:get-active-window root-xcontext))
+                                        (title (xu:window-get-title* display w)))
                                    (update widget (or title ""))))
                                ;; guard
                                (lambda (event)
                                  (= net-active-window-atom (xpropertyevent-atom event))))
         (xselectinput display root (bitwise-ior eventmask PROPERTYCHANGEMASK))
-        (widget-update widget (list (or (xu:active-window-title root-xcontext) "")))))))
+        (let* ((w (xu:get-active-window root-xcontext))
+               (title (xu:window-get-title* display w)))
+          (widget-update widget (list (or title ""))))))))
 
 
 ;;;
