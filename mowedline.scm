@@ -229,10 +229,6 @@
         (when (window-lower)
           (xlowerwindow display xwindow))
 
-        (xselectinput display xwindow
-                      (bitwise-ior EXPOSUREMASK
-                                   BUTTONPRESSMASK
-                                   STRUCTURENOTIFYMASK))
         (xmapwindow display xwindow)
         (xnextevent display (make-xevent))
         (window-expose window)
@@ -253,7 +249,8 @@
                                BUTTONPRESSMASK
                                window-handle-event/buttonpress
                                #f)
-        (push! xcontext xcontexts)))))
+        (xu:update-event-mask! xcontext)
+        (push! xcontext xcontexts))))))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window fonts:)))
@@ -732,10 +729,7 @@
          (xcontext (slot-value window xcontext:)))
     (xu:with-xcontext xcontext (display root)
       (let* ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
-             (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0))
-             (attr (make-xwindowattributes))
-             (_ (xgetwindowattributes display root attr))
-             (eventmask (xwindowattributes-your_event_mask attr)))
+             (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
         (xu:add-event-handler! root-xcontext
                                PROPERTYNOTIFY
                                PROPERTYCHANGEMASK
@@ -746,7 +740,7 @@
                                ;; guard
                                (lambda (event)
                                  (= net-active-window-atom (xpropertyevent-atom event))))
-        (xselectinput display root (bitwise-ior eventmask PROPERTYCHANGEMASK))
+        (xu:update-event-mask! root-xcontext)
         (let* ((w (xu:get-active-window root-xcontext))
                (title (xu:window-get-title* display w)))
           (widget-update widget (list (or title ""))))))))
