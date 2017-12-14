@@ -147,12 +147,9 @@
                      visual-depth INPUTOUTPUT visual
                      flags attr))))
 
-(define-method (initialize-instance (window <window>))
-  (call-next-method)
+(define (window-calculate-geometry window)
   (xu:with-xcontext (slot-value window xcontext:)
       (xcontext display)
-    (for-each (lambda (widget) (widget-set-window! widget window))
-              (slot-value window widgets:))
     (let* ((shei (xu:screen-or-xinerama-screen-height xcontext))
            (position (slot-value window position:))
            (width (or (slot-value window width:)
@@ -167,10 +164,42 @@
            (window-top (+ (xu:screen-or-xinerama-screen-top xcontext)
                           (case position
                             ((bottom) (- shei (slot-value window margin-bottom:) height))
-                            (else (slot-value window margin-top:)))))
-           (xwindow (window-create-xwindow xcontext
-                                           window-left window-top width height
-                                           (slot-value window background:))))
+                            (else (slot-value window margin-top:))))))
+      (list window-left window-top width height))))
+
+(define (window-set-struts! window)
+  (let* ((xcontext (slot-value window xcontext:))
+         (strut-height (+ (slot-value window height:)
+                          (slot-value window margin-top:)
+                          (slot-value window margin-bottom:)))
+         (strut-left (xu:screen-or-xinerama-screen-left xcontext))
+         (strut-right (+ strut-left (slot-value window margin-left:)
+                         (slot-value window margin-right:)))
+         (position (slot-value window position:)))
+    (xu:window-property-set xcontext "_NET_WM_STRUT"
+                            (xu:make-numbers-property
+                             (if (eq? position 'bottom)
+                                 (list 0 0 0 strut-height)
+                                 (list 0 0 strut-height 0))))
+    (xu:window-property-set xcontext "_NET_WM_STRUT_PARTIAL"
+                            (xu:make-numbers-property
+                             (if (eq? position 'bottom)
+                                 (list 0 0 0 strut-height 0 0 0 0
+                                       0 0 strut-left strut-right)
+                                 (list 0 0 strut-height 0 0 0 0 0
+                                       strut-left strut-right 0 0))))))
+
+(define-method (initialize-instance (window <window>))
+  (call-next-method)
+  (xu:with-xcontext (slot-value window xcontext:)
+      (xcontext display)
+    (for-each (lambda (widget) (widget-set-window! widget window))
+              (slot-value window widgets:))
+    (match-let (((window-left window-top width height)
+                 (window-calculate-geometry window)))
+    (let ((xwindow (window-create-xwindow xcontext
+                                          window-left window-top width height
+                                          (slot-value window background:))))
       (assert xwindow)
       (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
         (set! (slot-value window xcontext:) xcontext)
@@ -205,24 +234,7 @@
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
         (xu:window-property-append xcontext "_NET_WM_STATE"
                                    (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
-
-        (let* ((strut-height (+ height (slot-value window margin-top:)
-                                (slot-value window margin-bottom:)))
-               (strut-left (xu:screen-or-xinerama-screen-left xcontext))
-               (strut-right (+ strut-left (slot-value window margin-left:)
-                               (slot-value window margin-right:))))
-          (xu:window-property-set xcontext "_NET_WM_STRUT"
-                                  (xu:make-numbers-property
-                                   (if (eq? position 'bottom)
-                                       (list 0 0 0 strut-height)
-                                       (list 0 0 strut-height 0))))
-          (xu:window-property-set xcontext "_NET_WM_STRUT_PARTIAL"
-                                  (xu:make-numbers-property
-                                   (if (eq? position 'bottom)
-                                       (list 0 0 0 strut-height 0 0 0 0
-                                             0 0 strut-left strut-right)
-                                       (list 0 0 strut-height 0 0 0 0 0
-                                             strut-left strut-right 0 0)))))
+        (window-set-struts! window)
 
         (xu:set-wm-protocols xcontext '(WM_DELETE_WINDOW))
 
@@ -395,6 +407,30 @@
                (button (widget-button-at-position
                         widget (xbuttonpressedevent-x event))))
       ((button-handler button) widget)))))
+
+(define (mowedline-handle-event/root-configurenotify root-xcontext event)
+  (let ((root-window-size
+         (L (xconfigureevent-width event)
+            (xconfigureevent-height event)))
+        (props (xu:xcontext-data root-xcontext)))
+    (unless (equal? root-window-size (alist-ref 'size props))
+      (xu:xcontext-data-set! root-xcontext
+                             (alist-update! 'size root-window-size props equal?))
+      (for-each
+       (lambda (xc)
+         (let ((window (xu:xcontext-data xc)))
+           (when (instance-of? window <window>)
+             (xu:with-xcontext xc (display)
+               (match-let (((window-left window-top width height)
+                            (window-calculate-geometry window)))
+                 (set! (slot-value window width:) width)
+                 (set! (slot-value window height:) height)
+                 (let ((xwindow (xu:xcontext-window xc)))
+                   (xmoveresizewindow display xwindow window-left window-top
+                                      width height))
+                 (window-update-widget-dimensions! window)
+                 (window-set-struts! window))))))
+       xcontexts))))
 
 
 ;;;
@@ -868,10 +904,18 @@
 
 (define (mowedline)
   (xu:with-xcontext (xu:make-xcontext display: (xopendisplay #f))
-      (xcontext display)
+      (xcontext display screen)
     (assert display)
 
     (push! xcontext xcontexts) ;; root xcontext
+
+    (xu:xcontext-data-set!
+     xcontext `((size . ,(L (xdisplaywidth display screen)
+                            (xdisplayheight display screen)))))
+    (xu:add-event-handler! xcontext CONFIGURENOTIFY STRUCTURENOTIFYMASK
+                           mowedline-handle-event/root-configurenotify
+                           #f)
+    (xu:update-event-mask! xcontext)
 
     (parameterize ((current-xcontext xcontext))
       (let ((x-fd (xconnectionnumber display))
