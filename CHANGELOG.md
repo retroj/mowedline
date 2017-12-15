@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+### Added
+
+- move, resize, and update struts when xinerama configuration changes.
+
 
 ## [3.2.1] - 2017-12-03
 ### Fixed
