@@ -174,6 +174,7 @@
                           (slot-value window margin-bottom:)))
          (strut-left (xu:screen-or-xinerama-screen-left xcontext))
          (strut-right (+ strut-left (slot-value window margin-left:)
+                         (slot-value window width:) -1
                          (slot-value window margin-right:)))
          (position (slot-value window position:)))
     (xu:window-property-set xcontext "_NET_WM_STRUT"
