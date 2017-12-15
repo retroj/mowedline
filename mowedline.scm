@@ -215,12 +215,7 @@
           ;; Window Properties
           ;;
           (xstorename display xwindow "mowedline")
-
-          (let ((p (make-xtextproperty))
-                (str (xu:make-text-property (get-host-name))))
-            (xstringlisttotextproperty str 1 p)
-            (xsetwmclientmachine display xwindow p))
-
+          (xsetwmclientmachine display xwindow (xu:make-text-property (get-host-name)))
           (xu:window-property-set xcontext "_NET_WM_PID"
                                   (xu:make-number-property (current-process-id)))
           (xu:window-property-set xcontext "_NET_WM_WINDOW_TYPE"
