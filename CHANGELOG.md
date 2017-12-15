@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - move, resize, and update struts when xinerama configuration changes.
 
+### Fixed
+
+- window: `_NET_WM_STRUT_PARTIAL` correct x maximum
+- window: set `WM_CLIENT_MACHINE` correctly
+
 
 ## [3.2.1] - 2017-12-03
 ### Fixed
