@@ -197,72 +197,72 @@
               (slot-value window widgets:))
     (match-let (((window-left window-top width height)
                  (window-calculate-geometry window)))
-    (let ((xwindow (window-create-xwindow xcontext
-                                          window-left window-top width height
-                                          (slot-value window background:))))
-      (assert xwindow)
-      (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
-        (set! (slot-value window xcontext:) xcontext)
-        (set! (slot-value window width:) width)
-        (set! (slot-value window height:) height)
-        (set! (slot-value window baseline:)
-              (fold max 1 (map widget-preferred-baseline
-                               (slot-value window widgets:))))
-        (for-each widget-init (slot-value window widgets:))
-        (window-update-widget-dimensions! window)
+      (let ((xwindow (window-create-xwindow xcontext
+                                            window-left window-top width height
+                                            (slot-value window background:))))
+        (assert xwindow)
+        (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
+          (set! (slot-value window xcontext:) xcontext)
+          (set! (slot-value window width:) width)
+          (set! (slot-value window height:) height)
+          (set! (slot-value window baseline:)
+                (fold max 1 (map widget-preferred-baseline
+                                 (slot-value window widgets:))))
+          (for-each widget-init (slot-value window widgets:))
+          (window-update-widget-dimensions! window)
 
-        ;; Window Properties
-        ;;
-        (xstorename display xwindow "mowedline")
+          ;; Window Properties
+          ;;
+          (xstorename display xwindow "mowedline")
 
-        (let ((p (make-xtextproperty))
-              (str (xu:make-text-property (get-host-name))))
-          (xstringlisttotextproperty str 1 p)
-          (xsetwmclientmachine display xwindow p))
+          (let ((p (make-xtextproperty))
+                (str (xu:make-text-property (get-host-name))))
+            (xstringlisttotextproperty str 1 p)
+            (xsetwmclientmachine display xwindow p))
 
-        (xu:window-property-set xcontext "_NET_WM_PID"
-                                (xu:make-number-property (current-process-id)))
-        (xu:window-property-set xcontext "_NET_WM_WINDOW_TYPE"
-                                (xu:make-atom-property xcontext "_NET_WM_WINDOW_TYPE_DOCK"))
-        (xu:window-property-set xcontext "_NET_WM_DESKTOP"
-                                (xu:make-number-property #xffffffff))
-        (xu:window-property-set xcontext "_NET_WM_STATE"
-                                (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
-        (xu:window-property-append xcontext "_NET_WM_STATE"
-                                   (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
-        (xu:window-property-append xcontext "_NET_WM_STATE"
-                                   (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
-        (xu:window-property-append xcontext "_NET_WM_STATE"
-                                   (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
-        (window-set-struts! window)
+          (xu:window-property-set xcontext "_NET_WM_PID"
+                                  (xu:make-number-property (current-process-id)))
+          (xu:window-property-set xcontext "_NET_WM_WINDOW_TYPE"
+                                  (xu:make-atom-property xcontext "_NET_WM_WINDOW_TYPE_DOCK"))
+          (xu:window-property-set xcontext "_NET_WM_DESKTOP"
+                                  (xu:make-number-property #xffffffff))
+          (xu:window-property-set xcontext "_NET_WM_STATE"
+                                  (xu:make-atom-property xcontext "_NET_WM_STATE_BELOW"))
+          (xu:window-property-append xcontext "_NET_WM_STATE"
+                                     (xu:make-atom-property xcontext "_NET_WM_STATE_STICKY"))
+          (xu:window-property-append xcontext "_NET_WM_STATE"
+                                     (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_TASKBAR"))
+          (xu:window-property-append xcontext "_NET_WM_STATE"
+                                     (xu:make-atom-property xcontext "_NET_WM_STATE_SKIP_PAGER"))
+          (window-set-struts! window)
 
-        (xu:set-wm-protocols xcontext '(WM_DELETE_WINDOW))
+          (xu:set-wm-protocols xcontext '(WM_DELETE_WINDOW))
 
-        (when (window-lower)
-          (xlowerwindow display xwindow))
+          (when (window-lower)
+            (xlowerwindow display xwindow))
 
-        (xmapwindow display xwindow)
-        (xnextevent display (make-xevent))
-        (window-expose window)
+          (xmapwindow display xwindow)
+          (xnextevent display (make-xevent))
+          (window-expose window)
 
-        (xu:xcontext-data-set! xcontext window)
-        (xu:add-event-handler! xcontext
-                               CLIENTMESSAGE
-                               #f
-                               window-handle-event/clientmessage
-                               #f)
-        (xu:add-event-handler! xcontext
-                               EXPOSE
-                               EXPOSUREMASK
-                               window-handle-event/expose
-                               #f)
-        (xu:add-event-handler! xcontext
-                               BUTTONPRESS
-                               BUTTONPRESSMASK
-                               window-handle-event/buttonpress
-                               #f)
-        (xu:update-event-mask! xcontext)
-        (push! xcontext xcontexts))))))
+          (xu:xcontext-data-set! xcontext window)
+          (xu:add-event-handler! xcontext
+                                 CLIENTMESSAGE
+                                 #f
+                                 window-handle-event/clientmessage
+                                 #f)
+          (xu:add-event-handler! xcontext
+                                 EXPOSE
+                                 EXPOSUREMASK
+                                 window-handle-event/expose
+                                 #f)
+          (xu:add-event-handler! xcontext
+                                 BUTTONPRESS
+                                 BUTTONPRESSMASK
+                                 window-handle-event/buttonpress
+                                 #f)
+          (xu:update-event-mask! xcontext)
+          (push! xcontext xcontexts))))))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window fonts:)))
