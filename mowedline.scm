@@ -766,16 +766,19 @@
                                PROPERTYNOTIFY
                                PROPERTYCHANGEMASK
                                (lambda (xcontext event)
-                                 (let* ((w (xu:get-active-window root-xcontext))
-                                        (title (xu:window-get-title* display w)))
-                                   (update widget (or title ""))))
+                                 (update widget
+                                         (or (and-let* ((w (xu:get-active-window xcontext)))
+                                               (xu:window-get-title* display w))
+                                             "")))
                                ;; guard
                                (lambda (event)
                                  (= net-active-window-atom (xpropertyevent-atom event))))
         (xu:update-event-mask! root-xcontext)
-        (let* ((w (xu:get-active-window root-xcontext))
-               (title (xu:window-get-title* display w)))
-          (widget-update widget (list (or title ""))))))))
+        (widget-update widget
+                       (list
+                        (or (and-let* ((w (xu:get-active-window root-xcontext)))
+                              (xu:window-get-title* display w))
+                            "")))))))
 
 
 ;;;
