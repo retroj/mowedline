@@ -103,18 +103,18 @@
 
 (define-class <window> ()
   ((id: initform: (window-get-next-id))
-   (xcontext: initform: (current-xcontext))
+   (%xcontext: initform: (current-xcontext))
    (position: initform: (window-position))
    (height: initform: #f)
    (width: initform: #f)
-   (baseline: initform: #f)
+   (%baseline: initform: #f)
    (margin-top: initform: 0)
    (margin-right: initform: 0)
    (margin-bottom: initform: 0)
    (margin-left: initform: 0)
    (background: initform: (window-background))
    (widgets: initform: (list))
-   (fonts: initform: (list))))
+   (%fonts: initform: (list))))
 
 (define (window . args)
   (receive (props widgets)
@@ -150,7 +150,7 @@
                      flags attr))))
 
 (define (window-calculate-geometry window)
-  (xu:with-xcontext (slot-value window xcontext:)
+  (xu:with-xcontext (slot-value window %xcontext:)
       (xcontext display)
     (let* ((shei (xu:screen-or-xinerama-screen-height xcontext))
            (position (slot-value window position:))
@@ -170,7 +170,7 @@
       (list window-left window-top width height))))
 
 (define (window-set-struts! window)
-  (let* ((xcontext (slot-value window xcontext:))
+  (let* ((xcontext (slot-value window %xcontext:))
          (strut-height (+ (slot-value window height:)
                           (slot-value window margin-top:)
                           (slot-value window margin-bottom:)))
@@ -194,7 +194,7 @@
 
 (define-method (initialize-instance (window <window>))
   (call-next-method)
-  (xu:with-xcontext (slot-value window xcontext:)
+  (xu:with-xcontext (slot-value window %xcontext:)
       (xcontext display)
     (for-each (lambda (widget) (widget-set-window! widget window))
               (slot-value window widgets:))
@@ -205,10 +205,10 @@
                                             (slot-value window background:))))
         (assert xwindow)
         (let* ((xcontext (xu:make-xcontext xcontext window: xwindow)))
-          (set! (slot-value window xcontext:) xcontext)
+          (set! (slot-value window %xcontext:) xcontext)
           (set! (slot-value window width:) width)
           (set! (slot-value window height:) height)
-          (set! (slot-value window baseline:)
+          (set! (slot-value window %baseline:)
                 (fold max 1 (map widget-preferred-baseline
                                  (slot-value window widgets:))))
           (for-each widget-init (slot-value window widgets:))
@@ -263,12 +263,12 @@
           (push! xcontext xcontexts))))))
 
 (define (window-get-create-font window font)
-  (let ((fonts (slot-value window fonts:)))
+  (let ((fonts (slot-value window %fonts:)))
     (or (alist-ref font fonts)
-        (xu:with-xcontext (slot-value window xcontext:)
+        (xu:with-xcontext (slot-value window %xcontext:)
           (display screen)
         (let ((fontref (xft-font-open/name display screen font)))
-          (set! (slot-value window fonts:)
+          (set! (slot-value window %fonts:)
                 (cons (cons font fontref)
                       fonts))
           fontref)))))
@@ -279,7 +279,7 @@
     ;; exposing a given rectangle means drawing all widgets which
     ;; intersect that rectangle, passing the rectangle in to them so they
     ;; can use it as a mask (via a region).
-    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
+    (xu:with-xcontext (slot-value window %xcontext:) (xcontext display)
       (let ((xwindow (xu:xcontext-window xcontext))
             (widgets (slot-value window widgets:))
             (r (xcreateregion)))
@@ -399,7 +399,7 @@
 
 (define (window-handle-event/buttonpress xcontext event)
   (let ((window (xu:xcontext-data xcontext)))
-  (parameterize ((current-xcontext (slot-value window xcontext:)))
+  (parameterize ((current-xcontext (slot-value window %xcontext:)))
     (and-let* ((widget (window-widget-at-position
                         window (xbuttonpressedevent-x event)))
                (button (widget-button-at-position
@@ -482,7 +482,7 @@
 
 (define-method (widget-draw (widget <widget>) region)
   (let ((window (slot-value widget %window:)))
-    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
+    (xu:with-xcontext (slot-value window %xcontext:) (xcontext display)
       (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget %xrectangle:))
              (x (xrectangle-x wrect))
@@ -551,12 +551,12 @@
 
 (define-method (widget-draw (widget <text-widget>) region)
   (let ((window (slot-value widget %window:)))
-    (xu:with-xcontext (slot-value window xcontext:) (xcontext display)
+    (xu:with-xcontext (slot-value window %xcontext:) (xcontext display)
       (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget %xrectangle:))
              (font (window-get-create-font window (slot-value widget font:)))
              (x (xrectangle-x wrect))
-             (baseline (slot-value window baseline:))
+             (baseline (slot-value window %baseline:))
              (attr (make-xwindowattributes))
              (_ (xgetwindowattributes display xwindow attr))
              (visual (xwindowattributes-visual attr))
@@ -618,7 +618,7 @@
 
 (define-method (widget-preferred-width (widget <text-widget>))
   (let ((window (slot-value widget %window:)))
-    (xu:with-xcontext (slot-value window xcontext:) (display)
+    (xu:with-xcontext (slot-value window %xcontext:) (display)
       (define (x-extent str font)
         (xglyphinfo-xoff
          (xft-text-extents display
@@ -760,7 +760,7 @@
 (define-method (widget-init (widget <active-window-icon>))
   (call-next-method)
   (let* ((window (slot-value widget %window:))
-         (xcontext (slot-value window xcontext:)))
+         (xcontext (slot-value window %xcontext:)))
     (xu:with-xcontext xcontext (display screen root)
       (let* ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
              (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
@@ -777,7 +777,7 @@
 
 (define-method (widget-draw (widget <active-window-icon>) region)
   (let ((window (slot-value widget %window:)))
-    (xu:with-xcontext (slot-value window xcontext:) (xcontext display screen)
+    (xu:with-xcontext (slot-value window %xcontext:) (xcontext display screen)
       (let* ((xwindow (xu:xcontext-window xcontext))
              (wrect (slot-value widget %xrectangle:))
              (x (xrectangle-x wrect))
@@ -857,7 +857,7 @@
 (define-method (widget-init (widget <active-window-title>))
   (call-next-method)
   (let* ((window (slot-value widget %window:))
-         (xcontext (slot-value window xcontext:)))
+         (xcontext (slot-value window %xcontext:)))
     (xu:with-xcontext xcontext (display root)
       (let* ((root-xcontext (find (lambda (xc) (= root (xu:xcontext-window xc))) xcontexts))
              (net-active-window-atom (xinternatom display "_NET_ACTIVE_WINDOW" 0)))
