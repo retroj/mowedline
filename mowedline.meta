@@ -7,13 +7,15 @@
         filepath
         fmt
         (gochan "2.5")
+        imlib2
+        imlib2-xlib
         (imperative-command-line-a "0.5.0")
         matchable
         miscmacros
         pathname-expand
         xft
         xlib
-        (xlib-utils "0.5.0")
+        (xlib-utils "1.0.0")
         xtypes)
  (author "John J. Foerch")
  (synopsis "an X status bar program"))
