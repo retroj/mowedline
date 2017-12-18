@@ -111,11 +111,117 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [0.2.8] - 2015-08-03
+### Added
+
+- Window margins
+- Non-compositing window transparency
+- Mowedline can now be used as a library
+- text-maybe-pad-left util
+- spacer widget
+- window margins support
+- server command line option -config (load alternative config)
+- window background color
+- window-background 'inherit
+
+### Changed
+
+- Simplified configuration syntax (window, widget:text, ...)
+- Write "mowedline" in default windows.
+- Mowedline is a library so it can be loaded into other programs.
+- Move some utilities to xlib-utils.
+- Use xlib-utils xcontext system.
+
+### Fixed
+
+- text-widget widget-preferred-width: account for fonts.
+- -window: delay window construction until after X connection is open.
+- window-expose handle empty windows properly.
+- always allocate flex space in integer amounts.
+- text-widget applies format function to its initial text.
+- map:update-widget handles malformed input better.
+
+
 ## [0.2.7] - 2015-05-31
+### Added
+
+- Text widget markup supports fonts.
+- Emacs package mowedline.el released.
+- map widget
+
+
 ## [0.2.6] - 2013-03-02
+### Changed
+
+- mowedline is a module
+
+
 ## [0.2.5] - 2013-02-19
+### Changed
+
+- internal updates for imperative-command-line-a version 0.4
+
+
 ## [0.2.4] - 2013-02-18
+### Fixed
+
+- Specify certain egg versions in .meta file to fix installation.
+
+
 ## [0.2pre3] - 2013-02-14
+### Changed
+
+- command line parsing now done with imperative-command-line-a egg.
+
+
 ## [0.2pre2] - 2013-02-09
+### Added
+
+- Mowedline can now be installed with chicken-install.
+- logging
+
+### Fixed
+
+- Further improvements to resource usage.
+
+
 ## [0.2pre1] - 2013-01-29
+### Added
+
+- text-widget slot 'format'
+- text-widget markup supports color
+- text-widget markup supports buttons
+- command line option -q (bypass startup script)
+- command line option -clock (create clock widget)
+- command line options -bg, -fg
+- command line option -flex
+- command line option -position
+- command line option -window (create a window)
+- flags widget
+- switch-to-desktop util
+
+### Changed
+
+- Mowedline split into two programs: mowedline and mowedline-client.
+- use Xft for text
+- use fontconfig fonts instead of xlfd fonts
+- lower mowedline window on creation (configurable with window-lower)
+
+### Fixed
+
+- consume less cpu by sleeping while waiting for events
+
+
 ## [0.1] - 2011-04-08
+### Added
+
+- First release; minimum useful feature set.
+- both client and server in one program
+- support for multiple windows
+- window struts
+- ADSL config
+- command line parsing
+- update command
+- quit command
+- version command
+- text-widget
+- clock
