@@ -1,6 +1,6 @@
 
 ;; This file is part of mowedline.
-;; Copyright (C) 2011-2015  John J. Foerch
+;; Copyright (C) 2011-2017  John J. Foerch
 ;;
 ;; mowedline is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
