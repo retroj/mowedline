@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+
+
+## [3.3.0] - 2017-12-17
 ### Added
 
 - move, resize, and update struts when xinerama configuration changes.
+- active-window-icon: new widget
 
 ### Fixed
 
