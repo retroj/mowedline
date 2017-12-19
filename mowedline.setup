@@ -2,6 +2,8 @@
 
 (load "version.scm")
 
+;; Mowedline libraries
+;;
 (run (chicken -to-stdout -emit-all-import-libraries mowedline.scm >/dev/null))
 (compile -s mowedline.scm
          -prologue llog.import.scm
@@ -11,10 +13,19 @@
 
 (compile -s llog.import.scm)
 
+
+;; Mowedline server executable
+;;
 (compile mowedline-cli.scm -o mowedline)
 
+
+;; Mowedline-client
+;;
 (compile mowedline-client.scm)
 
+
+;; Install
+;;
 (install-extension 'mowedline
   '("mowedline.so" "mowedline.import.so" "llog.import.so")
   `((version ,version)))
