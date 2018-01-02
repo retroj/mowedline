@@ -28,6 +28,7 @@
      srfi-14 ;; character sets
      srfi-18 ;; threads
      srfi-69 ;; hash tables
+     fmt
      gochan
      coops
      data-structures
@@ -259,6 +260,9 @@
                                  #f)
           (xu:update-event-mask! xcontext)
           (push! xcontext xcontexts))))))
+
+(define-method (print-object (x <window>) port)
+  (fmt port "#<window " (slot-value x id:) ">"))
 
 (define (window-get-create-font window font)
   (let ((fonts (slot-value window %fonts:)))
