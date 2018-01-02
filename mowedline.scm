@@ -464,6 +464,14 @@
       (error "duplicate widget name"))
     (hash-table-set! *widgets* name widget)))
 
+(define-method (print-object (x <widget>) port)
+  (fmt port "#<"
+       (string-trim-both (->string (class-name (class-of x)))
+                         char-set:symbol)
+       (let ((name (slot-value x name:)))
+         (if name (cat " \"" name "\"") ""))
+       ">"))
+
 (define-method (widget-set-window! (widget <widget>) (window <window>))
   (set! (slot-value widget %window:) window))
 
